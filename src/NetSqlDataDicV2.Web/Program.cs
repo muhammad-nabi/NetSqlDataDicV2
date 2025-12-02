@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NetSqlDataDicV2.SourceModels;
 using NetSqlDataDicV2.Web.Data;
 using NetSqlDataDicV2.Web.Services;
 
@@ -15,14 +16,21 @@ builder.Services.AddControllersWithViews()
 // Add Kendo UI services
 builder.Services.AddKendo();
 
-// Add DbContext
+// Add DbContext for Data Dictionary
 builder.Services.AddDbContext<DataDictionaryDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DataDictionary")));
 
+// Add SourceDbContext for EF model comparison (read-only, for model reflection)
+builder.Services.AddDbContext<SourceDbContext>(options =>
+    options.UseSqlServer(
+        builder.Configuration.GetConnectionString("SourceDatabase")));
+
 // Add application services
 builder.Services.AddScoped<IDataDictionaryService, DataDictionaryService>();
 builder.Services.AddScoped<IDatabaseSyncService, DatabaseSyncService>();
+builder.Services.AddScoped<IEfModelService, EfModelService>();
+builder.Services.AddScoped<IComparisonService, ComparisonService>();
 
 var app = builder.Build();
 

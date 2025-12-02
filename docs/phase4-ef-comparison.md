@@ -805,15 +805,15 @@ public class ComparisonController : Controller
 
 ## Deliverables
 
-- [ ] EfModelColumnDto for EF model metadata
-- [ ] ComparisonResultViewModel and ComparisonItemViewModel
-- [ ] IEfModelService interface
-- [ ] EfModelService implementation using EF Core IModel
-- [ ] IComparisonService interface
-- [ ] ComparisonService with type mapping logic
-- [ ] ComparisonController
-- [ ] Comparison view with Kendo Grid and filtering
-- [ ] SourceDbContext registered and working
+- [x] EfModelColumnDto for EF model metadata
+- [x] ComparisonResultViewModel and ComparisonItemViewModel
+- [x] IEfModelService interface
+- [x] EfModelService implementation using EF Core IModel
+- [x] IComparisonService interface
+- [x] ComparisonService with type mapping logic
+- [x] ComparisonController
+- [x] Comparison view with Kendo Grid and filtering
+- [x] SourceDbContext registered and working
 
 ## Verification
 

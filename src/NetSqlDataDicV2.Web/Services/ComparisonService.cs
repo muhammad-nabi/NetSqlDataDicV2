@@ -1,0 +1,195 @@
+using NetSqlDataDicV2.Web.Models.ViewModels;
+
+namespace NetSqlDataDicV2.Web.Services;
+
+public class ComparisonService : IComparisonService
+{
+    private readonly IDataDictionaryService _dataDictionaryService;
+    private readonly IEfModelService _efModelService;
+    private readonly ILogger<ComparisonService> _logger;
+
+    // SQL Server to CLR type mapping
+    private static readonly Dictionary<string, string[]> SqlToClrTypeMap =
+        new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["INT"] = ["int", "Int32", "int?"],
+        ["BIGINT"] = ["long", "Int64", "long?"],
+        ["SMALLINT"] = ["short", "Int16", "short?"],
+        ["TINYINT"] = ["byte", "Byte", "byte?"],
+        ["BIT"] = ["bool", "Boolean", "bool?"],
+        ["DECIMAL"] = ["decimal", "Decimal", "decimal?"],
+        ["NUMERIC"] = ["decimal", "Decimal", "decimal?"],
+        ["MONEY"] = ["decimal", "Decimal", "decimal?"],
+        ["SMALLMONEY"] = ["decimal", "Decimal", "decimal?"],
+        ["FLOAT"] = ["double", "Double", "double?"],
+        ["REAL"] = ["float", "Single", "float?"],
+        ["DATETIME"] = ["DateTime", "DateTime?"],
+        ["DATETIME2"] = ["DateTime", "DateTime?"],
+        ["SMALLDATETIME"] = ["DateTime", "DateTime?"],
+        ["DATE"] = ["DateTime", "DateOnly", "DateTime?", "DateOnly?"],
+        ["TIME"] = ["TimeSpan", "TimeOnly", "TimeSpan?", "TimeOnly?"],
+        ["DATETIMEOFFSET"] = ["DateTimeOffset", "DateTimeOffset?"],
+        ["VARCHAR"] = ["string", "String"],
+        ["NVARCHAR"] = ["string", "String"],
+        ["CHAR"] = ["string", "String"],
+        ["NCHAR"] = ["string", "String"],
+        ["TEXT"] = ["string", "String"],
+        ["NTEXT"] = ["string", "String"],
+        ["UNIQUEIDENTIFIER"] = ["Guid", "Guid?"],
+        ["VARBINARY"] = ["byte[]", "Byte[]"],
+        ["BINARY"] = ["byte[]", "Byte[]"],
+        ["IMAGE"] = ["byte[]", "Byte[]"],
+        ["XML"] = ["string", "String"]
+    };
+
+    public ComparisonService(
+        IDataDictionaryService dataDictionaryService,
+        IEfModelService efModelService,
+        ILogger<ComparisonService> logger)
+    {
+        _dataDictionaryService = dataDictionaryService;
+        _efModelService = efModelService;
+        _logger = logger;
+    }
+
+    public async Task<ComparisonResultViewModel> CompareAsync(
+        string server,
+        string database,
+        CancellationToken cancellationToken = default)
+    {
+        _logger.LogInformation("Starting comparison for {Server}/{Database}", server, database);
+
+        // Get data dictionary entries
+        var dictionaryEntries = await _dataDictionaryService.GetByDatabaseAsync(
+            server, database, cancellationToken);
+
+        var columnEntries = dictionaryEntries
+            .Where(d => !string.IsNullOrEmpty(d.ColumnName))
+            .ToList();
+
+        // Get EF model columns
+        var efColumns = _efModelService.GetEfModelColumns();
+
+        _logger.LogInformation(
+            "Comparing {DictCount} dictionary entries with {EfCount} EF model columns",
+            columnEntries.Count, efColumns.Count);
+
+        // Build lookup dictionaries
+        var dictLookup = columnEntries.ToDictionary(
+            d => $"{d.SchemaName}.{d.TableName}.{d.ColumnName}".ToUpperInvariant(),
+            StringComparer.OrdinalIgnoreCase);
+
+        var efLookup = efColumns
+            .Where(e => !string.IsNullOrEmpty(e.TableName) && !string.IsNullOrEmpty(e.ColumnName))
+            .ToDictionary(
+                e => $"{e.SchemaName ?? "dbo"}.{e.TableName}.{e.ColumnName}".ToUpperInvariant(),
+                StringComparer.OrdinalIgnoreCase);
+
+        var results = new List<ComparisonItemViewModel>();
+        var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Compare dictionary entries against EF model
+        foreach (var dict in columnEntries)
+        {
+            var key = $"{dict.SchemaName}.{dict.TableName}.{dict.ColumnName}".ToUpperInvariant();
+            processedKeys.Add(key);
+
+            if (efLookup.TryGetValue(key, out var ef))
+            {
+                // Both exist - check type compatibility
+                var isCompatible = IsTypeCompatible(dict.DataType, ef.ClrType);
+
+                results.Add(new ComparisonItemViewModel
+                {
+                    SchemaName = dict.SchemaName,
+                    TableName = dict.TableName,
+                    ColumnName = dict.ColumnName,
+                    DatabaseType = dict.DataType,
+                    EfClrType = ef.ClrType,
+                    EfEntityName = ef.EntityName,
+                    EfPropertyName = ef.PropertyName,
+                    Status = isCompatible ? ComparisonStatus.Match : ComparisonStatus.TypeMismatch,
+                    Notes = isCompatible ? null : $"DB type '{dict.DataType}' may not match CLR type '{ef.ClrType}'"
+                });
+            }
+            else
+            {
+                // In dictionary but not in EF model
+                results.Add(new ComparisonItemViewModel
+                {
+                    SchemaName = dict.SchemaName,
+                    TableName = dict.TableName,
+                    ColumnName = dict.ColumnName,
+                    DatabaseType = dict.DataType,
+                    Status = ComparisonStatus.MissingInEfModel,
+                    Notes = "Column exists in database but not mapped in EF Core model. Re-scaffold may be needed."
+                });
+            }
+        }
+
+        // Find columns in EF but not in dictionary
+        foreach (var ef in efColumns.Where(e =>
+            !string.IsNullOrEmpty(e.TableName) && !string.IsNullOrEmpty(e.ColumnName)))
+        {
+            var key = $"{ef.SchemaName ?? "dbo"}.{ef.TableName}.{ef.ColumnName}".ToUpperInvariant();
+
+            if (!processedKeys.Contains(key))
+            {
+                results.Add(new ComparisonItemViewModel
+                {
+                    SchemaName = ef.SchemaName ?? "dbo",
+                    TableName = ef.TableName!,
+                    ColumnName = ef.ColumnName,
+                    EfClrType = ef.ClrType,
+                    EfEntityName = ef.EntityName,
+                    EfPropertyName = ef.PropertyName,
+                    Status = ComparisonStatus.MissingInDatabase,
+                    Notes = "Property exists in EF Core model but column not found in database. Add column and sync."
+                });
+            }
+        }
+
+        var result = new ComparisonResultViewModel
+        {
+            DatabaseServer = server,
+            DatabaseName = database,
+            ComparisonTime = DateTime.UtcNow,
+            Items = results
+                .OrderBy(r => r.Status)
+                .ThenBy(r => r.SchemaName)
+                .ThenBy(r => r.TableName)
+                .ThenBy(r => r.ColumnName)
+                .ToList()
+        };
+
+        _logger.LogInformation(
+            "Comparison complete: {Matches} matches, {MissingEf} missing in EF, {MissingDb} missing in DB, {Mismatches} type mismatches",
+            result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb, result.TotalTypeMismatches);
+
+        return result;
+    }
+
+    private bool IsTypeCompatible(string? sqlType, string? clrType)
+    {
+        if (string.IsNullOrEmpty(sqlType) || string.IsNullOrEmpty(clrType))
+            return true; // Can't determine, assume compatible
+
+        // Extract base SQL type (remove size specifiers)
+        var baseSqlType = sqlType.Split('(')[0].ToUpperInvariant();
+
+        // Normalize CLR type (remove nullable indicator for lookup)
+        var normalizedClrType = clrType.TrimEnd('?');
+
+        if (SqlToClrTypeMap.TryGetValue(baseSqlType, out var compatibleTypes))
+        {
+            return compatibleTypes.Any(t =>
+                t.Equals(clrType, StringComparison.OrdinalIgnoreCase) ||
+                t.Equals(normalizedClrType, StringComparison.OrdinalIgnoreCase));
+        }
+
+        // Unknown SQL type - log and assume compatible
+        _logger.LogWarning("Unknown SQL type '{SqlType}' - assuming compatible with '{ClrType}'",
+            sqlType, clrType);
+        return true;
+    }
+}

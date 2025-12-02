@@ -1,0 +1,263 @@
+@model NetSqlDataDicV2.Web.Models.ViewModels.ComparisonResultViewModel
+@{
+    ViewData["Title"] = "EF Core Comparison";
+}
+
+<h2>Compare Data Dictionary with EF Core Models</h2>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Comparison Configuration</h5>
+            </div>
+            <div class="card-body">
+                <dl class="row mb-3">
+                    <dt class="col-sm-4">Server</dt>
+                    <dd class="col-sm-8"><code>@ViewBag.SourceServer</code></dd>
+
+                    <dt class="col-sm-4">Database</dt>
+                    <dd class="col-sm-8"><code>@ViewBag.SourceDatabase</code></dd>
+                </dl>
+
+                <button type="button" id="runComparison" class="btn btn-primary">
+                    <span class="spinner-border spinner-border-sm d-none" role="status"></span>
+                    <span class="btn-text">Run Comparison</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div id="summaryCard" class="card d-none">
+            <div class="card-header">
+                <h5 class="mb-0">Comparison Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col">
+                        <h3 id="matchCount" class="text-success mb-0">0</h3>
+                        <small class="text-muted">Matches</small>
+                    </div>
+                    <div class="col">
+                        <h3 id="missingEfCount" class="text-warning mb-0">0</h3>
+                        <small class="text-muted">Missing in EF</small>
+                    </div>
+                    <div class="col">
+                        <h3 id="missingDbCount" class="text-danger mb-0">0</h3>
+                        <small class="text-muted">Missing in DB</small>
+                    </div>
+                    <div class="col">
+                        <h3 id="mismatchCount" class="text-info mb-0">0</h3>
+                        <small class="text-muted">Type Mismatches</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Comparison Results</h5>
+        <div>
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">All</button>
+                <button type="button" class="btn btn-outline-success filter-btn" data-filter="Match">Matches</button>
+                <button type="button" class="btn btn-outline-warning filter-btn" data-filter="MissingInEfModel">Missing in EF</button>
+                <button type="button" class="btn btn-outline-danger filter-btn" data-filter="MissingInDatabase">Missing in DB</button>
+                <button type="button" class="btn btn-outline-info filter-btn" data-filter="TypeMismatch">Mismatches</button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div id="comparisonGrid"></div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    var comparisonData = [];
+    var grid = null;
+
+    $(document).ready(function () {
+        // Initialize empty grid
+        initializeGrid([]);
+
+        // Run comparison button
+        $("#runComparison").on("click", function () {
+            var $btn = $(this);
+            var $spinner = $btn.find(".spinner-border");
+            var $text = $btn.find(".btn-text");
+
+            $btn.prop("disabled", true);
+            $spinner.removeClass("d-none");
+            $text.text("Comparing...");
+
+            $.ajax({
+                url: "@Url.Action("Compare", "Comparison")",
+                type: "POST",
+                success: function (data) {
+                    if (data.success) {
+                        // Update summary
+                        $("#summaryCard").removeClass("d-none");
+                        $("#matchCount").text(data.totalMatches);
+                        $("#missingEfCount").text(data.totalMissingInEf);
+                        $("#missingDbCount").text(data.totalMissingInDb);
+                        $("#mismatchCount").text(data.totalTypeMismatches);
+
+                        // Store data and refresh grid
+                        comparisonData = data.items;
+                        refreshGrid(comparisonData);
+                    } else {
+                        alert("Comparison failed: " + (data.error || "Unknown error"));
+                    }
+                },
+                error: function (xhr, status, error) {
+                    alert("Error: " + error);
+                },
+                complete: function () {
+                    $btn.prop("disabled", false);
+                    $spinner.addClass("d-none");
+                    $text.text("Run Comparison");
+                }
+            });
+        });
+
+        // Filter buttons
+        $(".filter-btn").on("click", function () {
+            $(".filter-btn").removeClass("active");
+            $(this).addClass("active");
+
+            var filter = $(this).data("filter");
+            if (filter === "all") {
+                refreshGrid(comparisonData);
+            } else {
+                var filtered = comparisonData.filter(function (item) {
+                    return item.status === getStatusValue(filter);
+                });
+                refreshGrid(filtered);
+            }
+        });
+    });
+
+    function getStatusValue(statusName) {
+        var statusMap = {
+            "Match": 0,
+            "MissingInEfModel": 1,
+            "MissingInDatabase": 2,
+            "TypeMismatch": 3
+        };
+        return statusMap[statusName];
+    }
+
+    function getStatusName(statusValue) {
+        var statusNames = ["Match", "Missing in EF Model", "Missing in Database", "Type Mismatch"];
+        return statusNames[statusValue] || "Unknown";
+    }
+
+    function getStatusBadgeClass(statusValue) {
+        var classes = ["bg-success", "bg-warning", "bg-danger", "bg-info"];
+        return classes[statusValue] || "bg-secondary";
+    }
+
+    function initializeGrid(data) {
+        grid = $("#comparisonGrid").kendoGrid({
+            dataSource: {
+                data: data,
+                pageSize: 50
+            },
+            height: 550,
+            sortable: true,
+            filterable: {
+                mode: "row"
+            },
+            pageable: {
+                pageSizes: [25, 50, 100, "all"],
+                refresh: true
+            },
+            groupable: true,
+            resizable: true,
+            columns: [
+                {
+                    field: "status",
+                    title: "Status",
+                    width: 150,
+                    template: function (dataItem) {
+                        return '<span class="badge ' + getStatusBadgeClass(dataItem.status) + '">' +
+                            getStatusName(dataItem.status) + '</span>';
+                    },
+                    filterable: {
+                        cell: {
+                            template: function (args) {
+                                args.element.kendoDropDownList({
+                                    dataSource: [
+                                        { text: "All", value: "" },
+                                        { text: "Match", value: 0 },
+                                        { text: "Missing in EF Model", value: 1 },
+                                        { text: "Missing in Database", value: 2 },
+                                        { text: "Type Mismatch", value: 3 }
+                                    ],
+                                    dataTextField: "text",
+                                    dataValueField: "value",
+                                    valuePrimitive: true
+                                });
+                            },
+                            showOperators: false
+                        }
+                    }
+                },
+                {
+                    field: "schemaName",
+                    title: "Schema",
+                    width: 80
+                },
+                {
+                    field: "tableName",
+                    title: "Table",
+                    width: 150,
+                    filterable: { cell: { operator: "contains" } }
+                },
+                {
+                    field: "columnName",
+                    title: "Column",
+                    width: 150,
+                    filterable: { cell: { operator: "contains" } }
+                },
+                {
+                    field: "databaseType",
+                    title: "DB Type",
+                    width: 120
+                },
+                {
+                    field: "efEntityName",
+                    title: "Entity",
+                    width: 150,
+                    filterable: { cell: { operator: "contains" } }
+                },
+                {
+                    field: "efPropertyName",
+                    title: "Property",
+                    width: 150
+                },
+                {
+                    field: "efClrType",
+                    title: "CLR Type",
+                    width: 100
+                },
+                {
+                    field: "notes",
+                    title: "Notes",
+                    width: 250
+                }
+            ]
+        }).data("kendoGrid");
+    }
+
+    function refreshGrid(data) {
+        if (grid) {
+            grid.dataSource.data(data);
+        }
+    }
+</script>
+}
