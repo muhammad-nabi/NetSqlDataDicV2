@@ -22,6 +22,7 @@ builder.Services.AddDbContext<DataDictionaryDbContext>(options =>
 
 // Add application services
 builder.Services.AddScoped<IDataDictionaryService, DataDictionaryService>();
+builder.Services.AddScoped<IDatabaseSyncService, DatabaseSyncService>();
 
 var app = builder.Build();
 

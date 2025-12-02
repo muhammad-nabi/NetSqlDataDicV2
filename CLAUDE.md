@@ -53,7 +53,7 @@ Razor Views + Kendo Grid → Controllers → Services → DataDictionaryDbContex
 - Entity configurations via `IEntityTypeConfiguration<T>` in `/Data/Configurations/`
 - Global query filter for soft deletes: `builder.HasQueryFilter(e => !e.IsDeleted)`
 - Unique constraint on (DatabaseServer, DatabaseName, SchemaName, TableName, ColumnName)
-- Service layer pattern: `IDataDictionaryService` → `DataDictionaryService`
+- Service layer pattern: `IDataDictionaryService`, `IDatabaseSyncService`
 
 ## Key Dependencies
 
@@ -70,13 +70,28 @@ The project uses Telerik Kendo UI which requires a license:
 2. Get your key from [Telerik Account](https://www.telerik.com/account/your-licenses)
 3. The license file is gitignored to protect your key
 
+## Sync Configuration
+
+To sync from a source database, configure in `appsettings.Development.json`:
+```json
+{
+  "ConnectionStrings": {
+    "SourceDatabase": "Server=...;Database=...;..."
+  },
+  "SourceDatabase": {
+    "Server": "your-server",
+    "Database": "your-database"
+  }
+}
+```
+
 ## Project Phases
 
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | Complete | Project setup, DbContext, migrations |
 | 2 | Complete | Data Dictionary Kendo Grid UI |
-| 3 | Pending | Database sync from source SQL Server |
+| 3 | Complete | Database sync from source SQL Server |
 | 4 | Pending | EF Core model comparison |
 | 5 | Pending | Polish, error handling, CSV export |
 
