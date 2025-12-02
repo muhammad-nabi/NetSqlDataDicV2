@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NetSqlDataDicV2.SourceModels\NetSqlDataDicV2.SourceModels.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- EF Core -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+
+    <!-- Kendo UI -->
+    <PackageReference Include="Telerik.UI.for.AspNet.Core" Version="2024.1.130" />
+
+    <!-- SQL Client -->
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,38 @@
+@{
+    ViewData["Title"] = "Home";
+}
+
+<div class="text-center">
+    <h1 class="display-4">SQL Server Data Dictionary</h1>
+    <p class="lead">Manage and compare your database schema metadata</p>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Data Dictionary</h5>
+                <p class="card-text">View and edit metadata for all database columns including purpose, notes, and business context.</p>
+                <a asp-controller="DataDictionary" asp-action="Index" class="btn btn-primary">View Dictionary</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Sync Database</h5>
+                <p class="card-text">Synchronize the data dictionary with your source database to capture schema changes.</p>
+                <a asp-controller="Sync" asp-action="Index" class="btn btn-primary">Sync Now</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Compare Models</h5>
+                <p class="card-text">Compare the data dictionary against EF Core scaffolded models to identify differences.</p>
+                <a asp-controller="Comparison" asp-action="Index" class="btn btn-primary">Compare</a>
+            </div>
+        </div>
+    </div>
+</div>
