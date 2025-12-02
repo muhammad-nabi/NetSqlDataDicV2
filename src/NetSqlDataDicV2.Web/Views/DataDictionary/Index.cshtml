@@ -1,0 +1,280 @@
+@{
+    ViewData["Title"] = "Data Dictionary";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Data Dictionary</h2>
+    <div>
+        <span id="recordCount" class="text-muted me-3"></span>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
+            Clear Filters
+        </button>
+    </div>
+</div>
+
+<div id="grid"></div>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        var grid = $("#grid").kendoGrid({
+            dataSource: {
+                transport: {
+                    read: {
+                        url: "@Url.Action("Read", "DataDictionary")",
+                        type: "POST",
+                        dataType: "json"
+                    },
+                    update: {
+                        url: "@Url.Action("Update", "DataDictionary")",
+                        type: "POST",
+                        dataType: "json"
+                    },
+                    parameterMap: function (data, operation) {
+                        return kendo.stringify(data);
+                    }
+                },
+                requestStart: function() {
+                    kendo.ui.progress($("#grid"), true);
+                },
+                requestEnd: function(e) {
+                    kendo.ui.progress($("#grid"), false);
+                    if (e.response && e.response.total !== undefined) {
+                        $("#recordCount").text(e.response.total + " records");
+                    }
+                },
+                schema: {
+                    data: "data",
+                    total: "total",
+                    model: {
+                        id: "dataElementId",
+                        fields: {
+                            dataElementId: { editable: false, type: "number" },
+                            dataElementName: { editable: false, type: "string" },
+                            dataElementType: { editable: false, type: "string" },
+                            dataType: { editable: false, type: "string" },
+                            dataPurpose: { type: "string" },
+                            entityPurpose: { type: "string" },
+                            databaseServer: { editable: false, type: "string" },
+                            databaseName: { editable: false, type: "string" },
+                            schemaName: { editable: false, type: "string" },
+                            tableName: { editable: false, type: "string" },
+                            columnName: { editable: false, type: "string" },
+                            originalDataSource: { type: "string" },
+                            notes: { type: "string" },
+                            foreignKeyTo: { editable: false, type: "string" },
+                            rowCount: { editable: false, type: "number" },
+                            isNullable: { editable: false, type: "boolean" },
+                            isPrimaryKey: { editable: false, type: "boolean" },
+                            maxLength: { editable: false, type: "number" },
+                            lastUpdateTime: { editable: false, type: "date" },
+                            lastSyncTime: { editable: false, type: "date" }
+                        }
+                    }
+                },
+                pageSize: 50,
+                serverPaging: true,
+                serverFiltering: true,
+                serverSorting: true
+            },
+            height: 650,
+            sortable: {
+                mode: "multiple",
+                allowUnsort: true
+            },
+            filterable: {
+                mode: "row"
+            },
+            pageable: {
+                refresh: true,
+                pageSizes: [25, 50, 100, 200],
+                buttonCount: 5
+            },
+            groupable: true,
+            resizable: true,
+            reorderable: true,
+            columnMenu: true,
+            editable: "inline",
+            toolbar: [
+                { template: '<input type="search" id="globalSearch" class="k-textbox" placeholder="Search all columns..." style="width: 300px;" />' }
+            ],
+            columns: [
+                {
+                    field: "databaseServer",
+                    title: "Server",
+                    width: 120,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "databaseName",
+                    title: "Database",
+                    width: 120,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "schemaName",
+                    title: "Schema",
+                    width: 80,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "eq"
+                        }
+                    }
+                },
+                {
+                    field: "tableName",
+                    title: "Table",
+                    width: 150,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "columnName",
+                    title: "Column",
+                    width: 150,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "dataType",
+                    title: "Data Type",
+                    width: 110,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "isNullable",
+                    title: "Nullable",
+                    width: 80,
+                    template: "#= isNullable ? 'Yes' : 'No' #",
+                    filterable: {
+                        cell: {
+                            template: function(args) {
+                                args.element.kendoDropDownList({
+                                    dataSource: [
+                                        { text: "All", value: "" },
+                                        { text: "Yes", value: "true" },
+                                        { text: "No", value: "false" }
+                                    ],
+                                    dataTextField: "text",
+                                    dataValueField: "value",
+                                    valuePrimitive: true
+                                });
+                            },
+                            showOperators: false
+                        }
+                    }
+                },
+                {
+                    field: "isPrimaryKey",
+                    title: "PK",
+                    width: 60,
+                    template: "#= isPrimaryKey ? '\\u2713' : '' #",
+                    filterable: false
+                },
+                {
+                    field: "foreignKeyTo",
+                    title: "FK To",
+                    width: 180,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "dataPurpose",
+                    title: "Purpose",
+                    width: 200,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "notes",
+                    title: "Notes",
+                    width: 200,
+                    filterable: {
+                        cell: {
+                            showOperators: false,
+                            operator: "contains"
+                        }
+                    }
+                },
+                {
+                    field: "lastUpdateTime",
+                    title: "Updated",
+                    width: 140,
+                    format: "{0:yyyy-MM-dd HH:mm}",
+                    filterable: false
+                },
+                {
+                    command: ["edit"],
+                    title: "Actions",
+                    width: 100
+                }
+            ]
+        }).data("kendoGrid");
+
+        // Global search functionality
+        $("#globalSearch").on("keyup", function () {
+            var value = $(this).val();
+            if (value.length >= 2 || value.length === 0) {
+                var filter = { logic: "or", filters: [] };
+
+                if (value) {
+                    filter.filters = [
+                        { field: "tableName", operator: "contains", value: value },
+                        { field: "columnName", operator: "contains", value: value },
+                        { field: "dataPurpose", operator: "contains", value: value },
+                        { field: "notes", operator: "contains", value: value },
+                        { field: "dataType", operator: "contains", value: value }
+                    ];
+                }
+
+                grid.dataSource.filter(filter.filters.length > 0 ? filter : {});
+            }
+        });
+    });
+
+    function clearFilters() {
+        var grid = $("#grid").data("kendoGrid");
+        grid.dataSource.filter({});
+        $("#globalSearch").val("");
+
+        // Clear row filter inputs
+        $(".k-filtercell input").val("");
+        $(".k-filtercell .k-dropdown").each(function() {
+            var ddl = $(this).data("kendoDropDownList");
+            if (ddl) ddl.value("");
+        });
+    }
+</script>
+}

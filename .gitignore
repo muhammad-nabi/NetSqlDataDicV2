@@ -483,3 +483,6 @@ $RECYCLE.BIN/
 # Vim temporary swap files
 *.swp
 src/NetSqlDataDicV2.Web/appsettings.Development.json
+
+# Kendo UI license (contains license key)
+**/kendo-ui-license.js

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NetSqlDataDicV2.Web.Data;
+using NetSqlDataDicV2.Web.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,9 @@ builder.Services.AddKendo();
 builder.Services.AddDbContext<DataDictionaryDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("DataDictionary")));
+
+// Add application services
+builder.Services.AddScoped<IDataDictionaryService, DataDictionaryService>();
 
 var app = builder.Build();
 
