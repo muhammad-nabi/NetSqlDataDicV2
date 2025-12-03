@@ -93,6 +93,6 @@ To sync from a source database, configure in `appsettings.Development.json`:
 | 2 | Complete | Data Dictionary Kendo Grid UI |
 | 3 | Complete | Database sync from source SQL Server |
 | 4 | Complete | EF Core model comparison |
-| 5 | Pending | Polish, error handling, CSV export |
+| 5 | Complete | Polish, error handling, CSV export |
 
 Detailed specs for each phase are in `docs/phase*.md`.

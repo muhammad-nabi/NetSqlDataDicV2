@@ -1,3 +1,4 @@
+using System.Text;
 using Kendo.Mvc.Extensions;
 using Kendo.Mvc.UI;
 using Microsoft.AspNetCore.Mvc;
@@ -111,5 +112,30 @@ public class DataDictionaryController : Controller
     {
         var tables = await _service.GetDistinctTablesAsync(server, database);
         return Json(tables);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ExportCsv(string? server = null, string? database = null)
+    {
+        var data = string.IsNullOrEmpty(server) || string.IsNullOrEmpty(database)
+            ? await _service.GetAllAsync()
+            : await _service.GetByDatabaseAsync(server, database);
+
+        var csv = new StringBuilder();
+        csv.AppendLine("Server,Database,Schema,Table,Column,DataType,Nullable,PrimaryKey,ForeignKeyTo,Purpose,Notes");
+
+        foreach (var item in data)
+        {
+            csv.AppendLine($"\"{EscapeCsv(item.DatabaseServer)}\",\"{EscapeCsv(item.DatabaseName)}\",\"{EscapeCsv(item.SchemaName)}\",\"{EscapeCsv(item.TableName)}\",\"{EscapeCsv(item.ColumnName)}\",\"{EscapeCsv(item.DataType)}\",{item.IsNullable},{item.IsPrimaryKey},\"{EscapeCsv(item.ForeignKeyTo)}\",\"{EscapeCsv(item.DataPurpose)}\",\"{EscapeCsv(item.Notes)}\"");
+        }
+
+        var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+        return File(bytes, "text/csv", $"data-dictionary-{DateTime.Now:yyyyMMdd-HHmmss}.csv");
+    }
+
+    private static string EscapeCsv(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return "";
+        return value.Replace("\"", "\"\"").Replace("\n", " ").Replace("\r", "");
     }
 }
