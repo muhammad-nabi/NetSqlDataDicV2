@@ -13,6 +13,7 @@ public class DataDictionaryDbContext : DbContext
     public DbSet<DataElement> DataElements => Set<DataElement>();
     public DbSet<SyncHistory> SyncHistory => Set<SyncHistory>();
     public DbSet<SourceConnection> SourceConnections => Set<SourceConnection>();
+    public DbSet<EfModelSource> EfModelSources => Set<EfModelSource>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

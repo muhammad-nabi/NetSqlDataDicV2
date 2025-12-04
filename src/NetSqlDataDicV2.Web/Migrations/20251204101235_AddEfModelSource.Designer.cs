@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using NetSqlDataDicV2.Web.Data;
 
@@ -11,9 +12,11 @@ using NetSqlDataDicV2.Web.Data;
 namespace NetSqlDataDicV2.Web.Migrations
 {
     [DbContext(typeof(DataDictionaryDbContext))]
-    partial class DataDictionaryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251204101235_AddEfModelSource")]
+    partial class AddEfModelSource
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
