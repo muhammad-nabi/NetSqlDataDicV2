@@ -49,6 +49,9 @@ builder.Services.AddScoped<IDatabaseSyncService, DatabaseSyncService>();
 // EfModelService - now always registered (can work with DLL loading even without SourceDbContext)
 builder.Services.AddScoped<IEfModelService, EfModelService>();
 
+// EfModelSourceService - manages EF model source configurations
+builder.Services.AddScoped<IEfModelSourceService, EfModelSourceService>();
+
 // ComparisonService - now always registered
 builder.Services.AddScoped<IComparisonService, ComparisonService>();
 
