@@ -1,98 +1,159 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using NetSqlDataDicV2.SourceModels;
 using NetSqlDataDicV2.Web.Models.Dto;
+using NetSqlDataDicV2.Web.Models.Entities;
+using NetSqlDataDicV2.Web.Services.DbContextProviders;
 
 namespace NetSqlDataDicV2.Web.Services;
 
 public class EfModelService : IEfModelService
 {
-    private readonly SourceDbContext _sourceContext;
+    private readonly SourceDbContext? _sourceContext;
+    private readonly IDbContextProviderFactory _providerFactory;
     private readonly ILogger<EfModelService> _logger;
 
     public EfModelService(
-        SourceDbContext sourceContext,
-        ILogger<EfModelService> logger)
+        IDbContextProviderFactory providerFactory,
+        ILogger<EfModelService> logger,
+        SourceDbContext? sourceContext = null)
     {
         _sourceContext = sourceContext;
+        _providerFactory = providerFactory;
         _logger = logger;
     }
 
+    /// <summary>
+    /// Gets EF model columns from the directly referenced SourceDbContext.
+    /// (Backward compatible)
+    /// </summary>
     public List<EfModelColumnDto> GetEfModelColumns()
     {
-        var results = new List<EfModelColumnDto>();
-        var model = _sourceContext.Model;
+        if (_sourceContext == null)
+        {
+            _logger.LogWarning("SourceDbContext is not available");
+            return new List<EfModelColumnDto>();
+        }
+
+        return ExtractColumnsFromContext(_sourceContext);
+    }
+
+    /// <summary>
+    /// Gets EF model columns from a configured EfModelSource.
+    /// </summary>
+    public List<EfModelColumnDto> GetEfModelColumns(EfModelSource source)
+    {
+        _logger.LogInformation("Getting EF model columns for source: {Name}", source.Name);
+
+        using var provider = _providerFactory.GetProvider(source);
+        using var result = provider.GetDbContext(source);
+
+        if (!result.Success || result.Context == null)
+        {
+            _logger.LogError("Failed to get DbContext: {Error}", result.ErrorMessage);
+            throw new InvalidOperationException(
+                $"Failed to load DbContext for source '{source.Name}': {result.ErrorMessage}");
+        }
+
+        return ExtractColumnsFromContext(result.Context);
+    }
+
+    /// <summary>
+    /// Discovers DbContext types in an assembly.
+    /// </summary>
+    public List<DbContextInfo> DiscoverDbContexts(string assemblyPath)
+    {
+        return _providerFactory.DiscoverDbContexts(assemblyPath);
+    }
+
+    /// <summary>
+    /// Extracts column metadata from a DbContext's model.
+    /// </summary>
+    private List<EfModelColumnDto> ExtractColumnsFromContext(DbContext context)
+    {
+        var columns = new List<EfModelColumnDto>();
+        var model = context.Model;
 
         foreach (var entityType in model.GetEntityTypes())
         {
-            // Skip shadow types and query types
-            if (entityType.IsOwned() || entityType.ClrType == null)
+            // Skip owned types (they're part of the owner entity's table)
+            if (entityType.IsOwned())
+                continue;
+
+            // Skip entities without CLR type
+            if (entityType.ClrType == null)
                 continue;
 
             var tableName = entityType.GetTableName();
             var schemaName = entityType.GetSchema() ?? "dbo";
+
+            // Skip entities without a table mapping (e.g., query types)
+            if (string.IsNullOrEmpty(tableName))
+                continue;
 
             _logger.LogDebug("Processing entity {Entity} -> {Schema}.{Table}",
                 entityType.ClrType.Name, schemaName, tableName);
 
             foreach (var property in entityType.GetProperties())
             {
-                // Skip shadow properties
-                if (property.IsShadowProperty())
+                // Skip shadow properties unless they map to columns
+                if (property.IsShadowProperty() && string.IsNullOrEmpty(property.GetColumnName()))
                     continue;
 
                 var columnName = property.GetColumnName();
-                var maxLength = property.GetMaxLength();
 
-                results.Add(new EfModelColumnDto
+                // Skip properties without column mappings
+                if (string.IsNullOrEmpty(columnName))
+                    continue;
+
+                columns.Add(new EfModelColumnDto
                 {
                     EntityName = entityType.ClrType.Name,
                     PropertyName = property.Name,
-                    ClrType = GetClrTypeName(property.ClrType),
                     ColumnName = columnName,
-                    TableName = tableName,
                     SchemaName = schemaName,
+                    TableName = tableName,
+                    ClrType = GetFriendlyTypeName(property.ClrType),
                     IsNullable = property.IsNullable,
-                    MaxLength = maxLength
+                    MaxLength = property.GetMaxLength()
                 });
             }
         }
 
-        _logger.LogInformation("Extracted {Count} columns from EF Core model", results.Count);
-        return results;
+        _logger.LogInformation("Extracted {Count} columns from DbContext model", columns.Count);
+
+        return columns;
     }
 
-    private static string GetClrTypeName(Type type)
+    /// <summary>
+    /// Converts CLR type to friendly C# type name.
+    /// </summary>
+    private static string GetFriendlyTypeName(Type type)
     {
-        // Handle nullable types
-        var underlyingType = Nullable.GetUnderlyingType(type);
-        if (underlyingType != null)
-        {
-            return $"{GetSimpleTypeName(underlyingType)}?";
-        }
+        var nullableUnderlying = Nullable.GetUnderlyingType(type);
+        var actualType = nullableUnderlying ?? type;
 
-        return GetSimpleTypeName(type);
-    }
-
-    private static string GetSimpleTypeName(Type type)
-    {
-        // Map common types to C# keywords
-        return type.Name switch
+        var friendlyName = actualType.Name switch
         {
             "Int32" => "int",
             "Int64" => "long",
             "Int16" => "short",
             "Byte" => "byte",
-            "Boolean" => "bool",
             "String" => "string",
+            "Boolean" => "bool",
             "Decimal" => "decimal",
             "Double" => "double",
             "Single" => "float",
+            "Guid" => "Guid",
             "DateTime" => "DateTime",
             "DateTimeOffset" => "DateTimeOffset",
+            "DateOnly" => "DateOnly",
+            "TimeOnly" => "TimeOnly",
             "TimeSpan" => "TimeSpan",
-            "Guid" => "Guid",
             "Byte[]" => "byte[]",
-            _ => type.Name
+            _ => actualType.Name
         };
+
+        return nullableUnderlying != null ? $"{friendlyName}?" : friendlyName;
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using NetSqlDataDicV2.SourceModels;
 using NetSqlDataDicV2.Web.Data;
 using NetSqlDataDicV2.Web.Services;
+using NetSqlDataDicV2.Web.Services.DbContextProviders;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +13,7 @@ var dataDictionaryConnectionString = builder.Configuration.GetConnectionString("
 var sourceConnectionString = builder.Configuration.GetConnectionString("SourceDatabase");
 if (string.IsNullOrEmpty(sourceConnectionString))
 {
-    Console.WriteLine("WARNING: SourceDatabase connection string not configured. Sync and Comparison features may not work.");
+    Console.WriteLine("WARNING: SourceDatabase connection string not configured. Direct reference comparison will not work, but dynamic DLL loading will still be available.");
 }
 
 // Add MVC with JSON options
@@ -31,21 +32,25 @@ builder.Services.AddDbContext<DataDictionaryDbContext>(options =>
     options.UseSqlServer(dataDictionaryConnectionString));
 
 // Add SourceDbContext for EF model comparison (read-only, for model reflection)
+// Optional - only registered if connection string is configured
 if (!string.IsNullOrEmpty(sourceConnectionString))
 {
     builder.Services.AddDbContext<SourceDbContext>(options =>
         options.UseSqlServer(sourceConnectionString));
 }
 
+// Add DbContext provider factory (always available - supports both direct and DLL loading)
+builder.Services.AddScoped<IDbContextProviderFactory, DbContextProviderFactory>();
+
 // Add application services
 builder.Services.AddScoped<IDataDictionaryService, DataDictionaryService>();
 builder.Services.AddScoped<IDatabaseSyncService, DatabaseSyncService>();
 
-if (!string.IsNullOrEmpty(sourceConnectionString))
-{
-    builder.Services.AddScoped<IEfModelService, EfModelService>();
-    builder.Services.AddScoped<IComparisonService, ComparisonService>();
-}
+// EfModelService - now always registered (can work with DLL loading even without SourceDbContext)
+builder.Services.AddScoped<IEfModelService, EfModelService>();
+
+// ComparisonService - now always registered
+builder.Services.AddScoped<IComparisonService, ComparisonService>();
 
 var app = builder.Build();
 
