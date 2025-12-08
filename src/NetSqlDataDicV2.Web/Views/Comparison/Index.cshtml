@@ -1,6 +1,8 @@
 @model NetSqlDataDicV2.Web.Models.ViewModels.ComparisonResultViewModel
 @{
     ViewData["Title"] = "EF Core Comparison";
+    var sources = ViewBag.EfModelSources as List<NetSqlDataDicV2.Web.Models.ViewModels.EfModelSourceViewModel> ?? new List<NetSqlDataDicV2.Web.Models.ViewModels.EfModelSourceViewModel>();
+    var selectedSourceId = ViewBag.SelectedSourceId as int?;
 }
 
 <h2>Compare Data Dictionary with EF Core Models</h2>
@@ -12,13 +14,44 @@
                 <h5 class="mb-0">Comparison Configuration</h5>
             </div>
             <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">EF Model Source</label>
+                    <select id="sourceSelector" class="form-select">
+                        <option value="">-- Direct Reference (Default) --</option>
+                        @foreach (var source in sources)
+                        {
+                            if (selectedSourceId == source.Id)
+                            {
+                                <option value="@source.Id" data-server="@source.TargetServer" data-database="@source.TargetDatabase" selected>@source.Name (@source.TargetDisplay)</option>
+                            }
+                            else
+                            {
+                                <option value="@source.Id" data-server="@source.TargetServer" data-database="@source.TargetDatabase">@source.Name (@source.TargetDisplay)</option>
+                            }
+                        }
+                    </select>
+                    @if (sources.Count == 0)
+                    {
+                        <small class="text-muted">
+                            No EF sources configured. <a asp-controller="EfModelSources" asp-action="Create">Add one</a>
+                        </small>
+                    }
+                </div>
+
                 <dl class="row mb-3">
                     <dt class="col-sm-4">Server</dt>
-                    <dd class="col-sm-8"><code>@ViewBag.SourceServer</code></dd>
+                    <dd class="col-sm-8"><code id="displayServer">@ViewBag.SourceServer</code></dd>
 
                     <dt class="col-sm-4">Database</dt>
-                    <dd class="col-sm-8"><code>@ViewBag.SourceDatabase</code></dd>
+                    <dd class="col-sm-8"><code id="displayDatabase">@ViewBag.SourceDatabase</code></dd>
                 </dl>
+
+                @if (ViewBag.SourceName != null)
+                {
+                    <div class="alert alert-info mb-3">
+                        Using source: <strong>@ViewBag.SourceName</strong>
+                    </div>
+                }
 
                 <button type="button" id="runComparison" class="btn btn-primary">
                     <span class="spinner-border spinner-border-sm d-none" role="status"></span>
@@ -79,42 +112,68 @@
 <script>
     var comparisonData = [];
     var grid = null;
+    var defaultServer = "@ViewBag.SourceServer";
+    var defaultDatabase = "@ViewBag.SourceDatabase";
 
     $(document).ready(function () {
         // Initialize empty grid
         initializeGrid([]);
+
+        // Source selector change handler
+        $("#sourceSelector").on("change", function() {
+            var selected = $(this).find("option:selected");
+            if (selected.val()) {
+                $("#displayServer").text(selected.data("server"));
+                $("#displayDatabase").text(selected.data("database"));
+            } else {
+                $("#displayServer").text(defaultServer);
+                $("#displayDatabase").text(defaultDatabase);
+            }
+        });
 
         // Run comparison button
         $("#runComparison").on("click", function () {
             var $btn = $(this);
             var $spinner = $btn.find(".spinner-border");
             var $text = $btn.find(".btn-text");
+            var sourceId = $("#sourceSelector").val();
 
             $btn.prop("disabled", true);
             $spinner.removeClass("d-none");
             $text.text("Comparing...");
 
+            // Determine which endpoint to call
+            var url, data;
+            if (sourceId) {
+                url = "@Url.Action("CompareSource", "Comparison")";
+                data = { sourceId: sourceId };
+            } else {
+                url = "@Url.Action("Compare", "Comparison")";
+                data = {};
+            }
+
             $.ajax({
-                url: "@Url.Action("Compare", "Comparison")",
+                url: url,
                 type: "POST",
-                success: function (data) {
-                    if (data.success) {
+                data: data,
+                success: function (result) {
+                    if (result.success) {
                         // Update summary
                         $("#summaryCard").removeClass("d-none");
-                        $("#matchCount").text(data.totalMatches);
-                        $("#missingEfCount").text(data.totalMissingInEf);
-                        $("#missingDbCount").text(data.totalMissingInDb);
-                        $("#mismatchCount").text(data.totalTypeMismatches);
+                        $("#matchCount").text(result.totalMatches);
+                        $("#missingEfCount").text(result.totalMissingInEf);
+                        $("#missingDbCount").text(result.totalMissingInDb);
+                        $("#mismatchCount").text(result.totalTypeMismatches);
 
                         // Store data and refresh grid
-                        comparisonData = data.items;
+                        comparisonData = result.items;
                         refreshGrid(comparisonData);
                     } else {
-                        alert("Comparison failed: " + (data.error || "Unknown error"));
+                        kendo.alert("Comparison failed: " + (result.error || "Unknown error"));
                     }
                 },
                 error: function (xhr, status, error) {
-                    alert("Error: " + error);
+                    kendo.alert("Error: " + error);
                 },
                 complete: function () {
                     $btn.prop("disabled", false);

@@ -125,26 +125,40 @@ public class DynamicDllProvider : IDbContextProvider
 
     private DbContext? CreateDbContextInstance(Type dbContextType, string? connectionString)
     {
+        // Use provided connection string or a dummy one for model reflection
+        // We need a connection string to configure the database provider
+        var effectiveConnectionString = !string.IsNullOrEmpty(connectionString)
+            ? connectionString
+            : "Server=.;Database=DummyForModelReflection;Trusted_Connection=True;TrustServerCertificate=True;";
+
         // Strategy 1: Try constructor with DbContextOptions<T>
-        if (!string.IsNullOrEmpty(connectionString))
+        var context = TryCreateWithOptions(dbContextType, effectiveConnectionString);
+        if (context != null)
         {
-            var context = TryCreateWithOptions(dbContextType, connectionString);
-            if (context != null) return context;
+            _logger.LogDebug("Created DbContext using DbContextOptions<{Type}>", dbContextType.Name);
+            return context;
         }
 
-        // Strategy 2: Try parameterless constructor
+        // Strategy 2: Try constructor with DbContextOptions (non-generic)
+        var context2 = TryCreateWithGenericOptions(dbContextType, effectiveConnectionString);
+        if (context2 != null)
+        {
+            _logger.LogDebug("Created DbContext using DbContextOptions");
+            return context2;
+        }
+
+        // Strategy 3: Try parameterless constructor only if OnConfiguring sets up the provider
+        // Note: This may fail at runtime if OnConfiguring doesn't configure a provider
         var parameterlessCtor = dbContextType.GetConstructor(Type.EmptyTypes);
         if (parameterlessCtor != null)
         {
-            _logger.LogDebug("Creating DbContext using parameterless constructor");
+            _logger.LogDebug("Creating DbContext using parameterless constructor (may fail if OnConfiguring is empty)");
             return (DbContext?)Activator.CreateInstance(dbContextType);
         }
 
-        // Strategy 3: Try constructor with DbContextOptions (generic)
-        var context2 = TryCreateWithGenericOptions(dbContextType, connectionString);
-        if (context2 != null) return context2;
-
-        _logger.LogWarning("Could not find suitable constructor for {Type}", dbContextType.FullName);
+        _logger.LogWarning("Could not find suitable constructor for {Type}. " +
+            "Ensure the DbContext has a constructor accepting DbContextOptions<TContext>.",
+            dbContextType.FullName);
         return null;
     }
 
@@ -158,31 +172,31 @@ public class DynamicDllProvider : IDbContextProvider
 
             if (ctor != null)
             {
-                _logger.LogDebug("Creating DbContext using DbContextOptions<{Type}> constructor", dbContextType.Name);
+                _logger.LogDebug("Found DbContextOptions<{Type}> constructor", dbContextType.Name);
 
+                // Create DbContextOptionsBuilder<TContext> via reflection
+                // This ensures we get DbContextOptions<TContext>, not DbContextOptions<DbContext>
                 var optionsBuilderType = typeof(DbContextOptionsBuilder<>).MakeGenericType(dbContextType);
                 var optionsBuilder = Activator.CreateInstance(optionsBuilderType);
 
-                // Call UseSqlServer extension method
-                var useSqlServerMethod = typeof(SqlServerDbContextOptionsExtensions)
-                    .GetMethods()
-                    .First(m => m.Name == "UseSqlServer"
-                        && m.GetParameters().Length == 2
-                        && m.GetParameters()[1].ParameterType == typeof(string));
+                // Cast to base DbContextOptionsBuilder and configure SQL Server
+                // UseSqlServer extension method works on the base class
+                var baseBuilder = (DbContextOptionsBuilder)optionsBuilder!;
+                baseBuilder.UseSqlServer(connectionString);
 
-                var genericMethod = useSqlServerMethod.MakeGenericMethod(dbContextType);
-                genericMethod.Invoke(null, new[] { optionsBuilder, connectionString });
+                // Get the typed Options property (returns DbContextOptions<TContext>)
+                // Use DeclaredOnly to avoid AmbiguousMatchException (generic class hides base Options property)
+                var optionsProperty = optionsBuilderType.GetProperty("Options",
+                    BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
+                var typedOptions = optionsProperty!.GetValue(optionsBuilder);
 
-                // Get Options property
-                var optionsProperty = optionsBuilderType.GetProperty("Options");
-                var options = optionsProperty?.GetValue(optionsBuilder);
-
-                return (DbContext?)Activator.CreateInstance(dbContextType, options);
+                _logger.LogInformation("Creating DbContext with SQL Server provider configured");
+                return (DbContext?)ctor.Invoke(new[] { typedOptions });
             }
         }
         catch (Exception ex)
         {
-            _logger.LogDebug(ex, "Failed to create DbContext with typed options");
+            _logger.LogWarning(ex, "Failed to create DbContext with typed options for {Type}", dbContextType.Name);
         }
 
         return null;

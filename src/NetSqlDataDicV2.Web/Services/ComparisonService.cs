@@ -1,3 +1,4 @@
+using NetSqlDataDicV2.Web.Models.Dto;
 using NetSqlDataDicV2.Web.Models.ViewModels;
 
 namespace NetSqlDataDicV2.Web.Services;
@@ -6,6 +7,7 @@ public class ComparisonService : IComparisonService
 {
     private readonly IDataDictionaryService _dataDictionaryService;
     private readonly IEfModelService _efModelService;
+    private readonly IEfModelSourceService _sourceService;
     private readonly ILogger<ComparisonService> _logger;
 
     // SQL Server to CLR type mapping
@@ -45,10 +47,12 @@ public class ComparisonService : IComparisonService
     public ComparisonService(
         IDataDictionaryService dataDictionaryService,
         IEfModelService efModelService,
+        IEfModelSourceService sourceService,
         ILogger<ComparisonService> logger)
     {
         _dataDictionaryService = dataDictionaryService;
         _efModelService = efModelService;
+        _sourceService = sourceService;
         _logger = logger;
     }
 
@@ -67,8 +71,18 @@ public class ComparisonService : IComparisonService
             .Where(d => !string.IsNullOrEmpty(d.ColumnName))
             .ToList();
 
-        // Get EF model columns
-        var efColumns = _efModelService.GetEfModelColumns();
+        // Get EF model columns from direct reference
+        List<EfModelColumnDto> efColumns;
+        try
+        {
+            efColumns = _efModelService.GetEfModelColumns();
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("No database provider"))
+        {
+            throw new InvalidOperationException(
+                "Direct Reference comparison is not available. Please configure a SourceDatabase connection string in appsettings.json, " +
+                "or select an EF Model Source from the dropdown.", ex);
+        }
 
         _logger.LogInformation(
             "Comparing {DictCount} dictionary entries with {EfCount} EF model columns",
@@ -165,6 +179,131 @@ public class ComparisonService : IComparisonService
         _logger.LogInformation(
             "Comparison complete: {Matches} matches, {MissingEf} missing in EF, {MissingDb} missing in DB, {Mismatches} type mismatches",
             result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb, result.TotalTypeMismatches);
+
+        return result;
+    }
+
+    public async Task<ComparisonResultViewModel> CompareAsync(
+        int sourceId,
+        CancellationToken cancellationToken = default)
+    {
+        var source = await _sourceService.GetByIdAsync(sourceId, cancellationToken);
+
+        if (source == null)
+        {
+            throw new ArgumentException($"EfModelSource with ID {sourceId} not found.");
+        }
+
+        _logger.LogInformation("Starting comparison using source {SourceId} - {Name}",
+            sourceId, source.Name);
+
+        // Get data dictionary entries for the target database
+        var dictionaryEntries = await _dataDictionaryService.GetByDatabaseAsync(
+            source.TargetServer, source.TargetDatabase, cancellationToken);
+
+        var columnEntries = dictionaryEntries
+            .Where(d => !string.IsNullOrEmpty(d.ColumnName))
+            .ToList();
+
+        // Get EF model columns from the configured source
+        var efColumns = _efModelService.GetEfModelColumns(source);
+
+        _logger.LogInformation(
+            "Comparing {DictCount} dictionary entries with {EfCount} EF model columns (source: {Source})",
+            columnEntries.Count, efColumns.Count, source.Name);
+
+        // Build lookup dictionaries
+        var dictLookup = columnEntries.ToDictionary(
+            d => $"{d.SchemaName}.{d.TableName}.{d.ColumnName}".ToUpperInvariant(),
+            StringComparer.OrdinalIgnoreCase);
+
+        var efLookup = efColumns
+            .Where(e => !string.IsNullOrEmpty(e.TableName) && !string.IsNullOrEmpty(e.ColumnName))
+            .ToDictionary(
+                e => $"{e.SchemaName ?? "dbo"}.{e.TableName}.{e.ColumnName}".ToUpperInvariant(),
+                StringComparer.OrdinalIgnoreCase);
+
+        var results = new List<ComparisonItemViewModel>();
+        var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Compare dictionary entries against EF model
+        foreach (var dict in columnEntries)
+        {
+            var key = $"{dict.SchemaName}.{dict.TableName}.{dict.ColumnName}".ToUpperInvariant();
+            processedKeys.Add(key);
+
+            if (efLookup.TryGetValue(key, out var ef))
+            {
+                var isCompatible = IsTypeCompatible(dict.DataType, ef.ClrType);
+
+                results.Add(new ComparisonItemViewModel
+                {
+                    SchemaName = dict.SchemaName,
+                    TableName = dict.TableName,
+                    ColumnName = dict.ColumnName,
+                    DatabaseType = dict.DataType,
+                    EfClrType = ef.ClrType,
+                    EfEntityName = ef.EntityName,
+                    EfPropertyName = ef.PropertyName,
+                    Status = isCompatible ? ComparisonStatus.Match : ComparisonStatus.TypeMismatch,
+                    Notes = isCompatible ? null : $"DB type '{dict.DataType}' may not match CLR type '{ef.ClrType}'"
+                });
+            }
+            else
+            {
+                results.Add(new ComparisonItemViewModel
+                {
+                    SchemaName = dict.SchemaName,
+                    TableName = dict.TableName,
+                    ColumnName = dict.ColumnName,
+                    DatabaseType = dict.DataType,
+                    Status = ComparisonStatus.MissingInEfModel,
+                    Notes = "Column exists in database but not mapped in EF Core model."
+                });
+            }
+        }
+
+        // Find columns in EF but not in dictionary
+        foreach (var ef in efColumns.Where(e =>
+            !string.IsNullOrEmpty(e.TableName) && !string.IsNullOrEmpty(e.ColumnName)))
+        {
+            var key = $"{ef.SchemaName ?? "dbo"}.{ef.TableName}.{ef.ColumnName}".ToUpperInvariant();
+
+            if (!processedKeys.Contains(key))
+            {
+                results.Add(new ComparisonItemViewModel
+                {
+                    SchemaName = ef.SchemaName ?? "dbo",
+                    TableName = ef.TableName!,
+                    ColumnName = ef.ColumnName,
+                    EfClrType = ef.ClrType,
+                    EfEntityName = ef.EntityName,
+                    EfPropertyName = ef.PropertyName,
+                    Status = ComparisonStatus.MissingInDatabase,
+                    Notes = "Property exists in EF Core model but column not found in database."
+                });
+            }
+        }
+
+        var result = new ComparisonResultViewModel
+        {
+            DatabaseServer = source.TargetServer,
+            DatabaseName = source.TargetDatabase,
+            ComparisonTime = DateTime.UtcNow,
+            Items = results
+                .OrderBy(r => r.Status)
+                .ThenBy(r => r.SchemaName)
+                .ThenBy(r => r.TableName)
+                .ThenBy(r => r.ColumnName)
+                .ToList()
+        };
+
+        // Update last compared timestamp
+        await _sourceService.UpdateLastComparedAsync(sourceId, cancellationToken);
+
+        _logger.LogInformation(
+            "Comparison complete (source {Source}): {Matches} matches, {MissingEf} missing in EF, {MissingDb} missing in DB, {Mismatches} type mismatches",
+            source.Name, result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb, result.TotalTypeMismatches);
 
         return result;
     }

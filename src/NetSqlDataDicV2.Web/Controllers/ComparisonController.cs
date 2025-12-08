@@ -9,23 +9,44 @@ namespace NetSqlDataDicV2.Web.Controllers;
 public class ComparisonController : Controller
 {
     private readonly IComparisonService _comparisonService;
+    private readonly IEfModelSourceService _sourceService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<ComparisonController> _logger;
 
     public ComparisonController(
         IComparisonService comparisonService,
+        IEfModelSourceService sourceService,
         IConfiguration configuration,
         ILogger<ComparisonController> logger)
     {
         _comparisonService = comparisonService;
+        _sourceService = sourceService;
         _configuration = configuration;
         _logger = logger;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index(int? sourceId, CancellationToken ct)
     {
+        // Get all active sources for dropdown
+        var sources = await _sourceService.GetActiveAsync(ct);
+        ViewBag.EfModelSources = sources;
+        ViewBag.SelectedSourceId = sourceId;
+
+        // Default values from configuration (backward compatible)
         ViewBag.SourceServer = _configuration["SourceDatabase:Server"] ?? "localhost";
         ViewBag.SourceDatabase = _configuration["SourceDatabase:Database"] ?? "";
+
+        // If sourceId provided, use that source's target
+        if (sourceId.HasValue)
+        {
+            var source = await _sourceService.GetByIdAsync(sourceId.Value, ct);
+            if (source != null)
+            {
+                ViewBag.SourceServer = source.TargetServer;
+                ViewBag.SourceDatabase = source.TargetDatabase;
+                ViewBag.SourceName = source.Name;
+            }
+        }
 
         return View(new ComparisonResultViewModel());
     }
@@ -76,6 +97,34 @@ public class ComparisonController : Controller
         {
             _logger.LogError(ex, "Comparison grid failed");
             return StatusCode(500, new { error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Compare using configured EF Model Source.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> CompareSource(int sourceId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _comparisonService.CompareAsync(sourceId, cancellationToken);
+
+            return Json(new
+            {
+                success = true,
+                totalItems = result.TotalItems,
+                totalMatches = result.TotalMatches,
+                totalMissingInEf = result.TotalMissingInEf,
+                totalMissingInDb = result.TotalMissingInDb,
+                totalTypeMismatches = result.TotalTypeMismatches,
+                items = result.Items
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Comparison failed for source {SourceId}", sourceId);
+            return Json(new { success = false, error = ex.Message });
         }
     }
 }

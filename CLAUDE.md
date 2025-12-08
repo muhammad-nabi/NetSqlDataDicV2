@@ -48,12 +48,15 @@ Razor Views + Kendo Grid → Controllers → Services → DataDictionaryDbContex
 - `DataElement` - Database column metadata (soft delete enabled via `IsDeleted` flag)
 - `SyncHistory` - Tracks sync operations
 - `SourceConnection` - Source database connection info
+- `EfModelSource` - Configured EF Model sources for dynamic DLL loading
 
 **Patterns Used:**
 - Entity configurations via `IEntityTypeConfiguration<T>` in `/Data/Configurations/`
 - Global query filter for soft deletes: `builder.HasQueryFilter(e => !e.IsDeleted)`
 - Unique constraint on (DatabaseServer, DatabaseName, SchemaName, TableName, ColumnName)
 - Service layer pattern: `IDataDictionaryService`, `IDatabaseSyncService`
+- Provider pattern for DbContext loading: `IDbContextProvider`, `IDbContextProviderFactory`
+- Plugin architecture with `AssemblyLoadContext` for runtime DLL loading
 
 ## Key Dependencies
 
@@ -96,3 +99,18 @@ To sync from a source database, configure in `appsettings.Development.json`:
 | 5 | Complete | Polish, error handling, CSV export |
 
 Detailed specs for each phase are in `docs/phase*.md`.
+
+## DLL-Based Loading Feature
+
+Runtime loading of EF Core DbContexts from external DLLs for comparison without compile-time references.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Core infrastructure (providers, plugin context) |
+| 2 | Complete | Service layer (factory pattern, EfModelService) |
+| 3 | Complete | Data layer (EfModelSource entity, CRUD service) |
+| 4 | Complete | UI layer (management pages, comparison integration) |
+| 5 | Pending | Security & validation |
+| 6 | Pending | Error handling |
+
+Detailed specs in `docs/dll-loading-phases/`.
