@@ -17,9 +17,8 @@ public class DbContextProviderFactory : IDbContextProviderFactory
     private readonly ISecurityAuditService _auditService;
     private readonly ILogger<DbContextProviderFactory> _logger;
     private readonly ILogger<DynamicDllProvider> _dllProviderLogger;
-    private readonly ILogger<DirectReferenceProvider> _directProviderLogger;
 
-    private static readonly string[] ProviderTypes = ["Direct", "DynamicDll"];
+    private static readonly string[] ProviderTypes = ["DynamicDll"];
 
     public DbContextProviderFactory(
         IServiceProvider serviceProvider,
@@ -27,8 +26,7 @@ public class DbContextProviderFactory : IDbContextProviderFactory
         IConnectionStringProtector connectionStringProtector,
         ISecurityAuditService auditService,
         ILogger<DbContextProviderFactory> logger,
-        ILogger<DynamicDllProvider> dllProviderLogger,
-        ILogger<DirectReferenceProvider> directProviderLogger)
+        ILogger<DynamicDllProvider> dllProviderLogger)
     {
         _serviceProvider = serviceProvider;
         _dllValidator = dllValidator;
@@ -36,7 +34,6 @@ public class DbContextProviderFactory : IDbContextProviderFactory
         _auditService = auditService;
         _logger = logger;
         _dllProviderLogger = dllProviderLogger;
-        _directProviderLogger = directProviderLogger;
     }
 
     public IDbContextProvider GetProvider(EfModelSource source)
@@ -46,7 +43,6 @@ public class DbContextProviderFactory : IDbContextProviderFactory
 
         return source.ProviderType switch
         {
-            "Direct" => new DirectReferenceProvider(_serviceProvider, _directProviderLogger),
             "DynamicDll" => new DynamicDllProvider(
                 _dllValidator,
                 _connectionStringProtector,

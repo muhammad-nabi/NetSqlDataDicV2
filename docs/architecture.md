@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-A .NET 8 MVC application that creates and maintains a SQL Server data dictionary, enabling users to:
+A .NET 9 MVC application that creates and maintains a SQL Server data dictionary, enabling users to:
 - Sync database schema metadata into a persistent data dictionary
 - View and edit data dictionary entries via Kendo UI grids
 - Compare the data dictionary against EF Core DB-First scaffolded models
@@ -39,9 +39,9 @@ A .NET 8 MVC application that creates and maintains a SQL Server data dictionary
             │                    │                  │               │
             ▼                    ▼                  ▼               │
 ┌─────────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
-│  DataDictionary     │  │  Source SQL     │  │  SourceModels   │  │
+│  DataDictionary     │  │  Source SQL     │  │  Dynamic DLL    │  │
 │  DbContext          │  │  Server DB      │  │  DbContext      │◄─┘
-│  (EF Core)          │  │  (sys.tables)   │  │  (Referenced)   │
+│  (EF Core)          │  │  (sys.tables)   │  │  (Runtime Load) │
 └─────────┬───────────┘  └─────────────────┘  └─────────────────┘
           │
           ▼
@@ -65,70 +65,60 @@ NetSqlDataDicV2/
 │   ├── phase2-data-dictionary.md
 │   ├── phase3-sync-feature.md
 │   ├── phase4-ef-comparison.md
-│   └── phase5-polish.md
+│   ├── phase5-polish.md
+│   ├── dll-loading-phases/          # DLL loading feature specs
+│   └── simplification-phases/       # Simplification project specs
 ├── src/
-│   ├── NetSqlDataDicV2.Web/         # Main MVC Application
-│   │   ├── Controllers/
-│   │   │   ├── HomeController.cs
-│   │   │   ├── DataDictionaryController.cs
-│   │   │   ├── SyncController.cs
-│   │   │   └── ComparisonController.cs
-│   │   ├── Models/
-│   │   │   ├── Entities/
-│   │   │   │   ├── DataElement.cs
-│   │   │   │   ├── SyncHistory.cs
-│   │   │   │   └── SourceConnection.cs
-│   │   │   ├── ViewModels/
-│   │   │   │   ├── DataElementViewModel.cs
-│   │   │   │   ├── SyncResultViewModel.cs
-│   │   │   │   └── ComparisonResultViewModel.cs
-│   │   │   └── Dto/
-│   │   │       ├── SourceColumnDto.cs
-│   │   │       └── EfModelColumnDto.cs
-│   │   ├── Data/
-│   │   │   ├── DataDictionaryDbContext.cs
-│   │   │   └── Configurations/
-│   │   │       ├── DataElementConfiguration.cs
-│   │   │       ├── SyncHistoryConfiguration.cs
-│   │   │       └── SourceConnectionConfiguration.cs
-│   │   ├── Services/
-│   │   │   ├── IDataDictionaryService.cs
-│   │   │   ├── DataDictionaryService.cs
-│   │   │   ├── IDatabaseSyncService.cs
-│   │   │   ├── DatabaseSyncService.cs
-│   │   │   ├── IEfModelService.cs
-│   │   │   ├── EfModelService.cs
-│   │   │   ├── IComparisonService.cs
-│   │   │   └── ComparisonService.cs
-│   │   ├── Views/
-│   │   │   ├── Shared/
-│   │   │   │   ├── _Layout.cshtml
-│   │   │   │   └── _ValidationScriptsPartial.cshtml
-│   │   │   ├── Home/
-│   │   │   │   └── Index.cshtml
-│   │   │   ├── DataDictionary/
-│   │   │   │   └── Index.cshtml
-│   │   │   ├── Sync/
-│   │   │   │   └── Index.cshtml
-│   │   │   └── Comparison/
-│   │   │       └── Index.cshtml
-│   │   ├── wwwroot/
-│   │   │   ├── css/
-│   │   │   │   └── site.css
-│   │   │   └── js/
-│   │   │       └── site.js
-│   │   ├── appsettings.json
-│   │   ├── appsettings.Development.json
-│   │   └── Program.cs
-│   │
-│   └── NetSqlDataDicV2.SourceModels/    # EF Core Scaffolded Models
-│       ├── NetSqlDataDicV2.SourceModels.csproj
-│       ├── SourceDbContext.cs
-│       └── [Scaffolded entity classes]
+│   └── NetSqlDataDicV2.Web/         # Main MVC Application
+│       ├── Controllers/
+│       │   ├── HomeController.cs
+│       │   ├── DataDictionaryController.cs
+│       │   ├── SyncController.cs
+│       │   ├── ComparisonController.cs
+│       │   └── EfModelSourcesController.cs
+│       ├── Models/
+│       │   ├── Entities/
+│       │   │   ├── DataElement.cs
+│       │   │   ├── SyncHistory.cs
+│       │   │   ├── SourceConnection.cs
+│       │   │   └── EfModelSource.cs
+│       │   ├── ViewModels/
+│       │   └── Dto/
+│       ├── Data/
+│       │   ├── DataDictionaryDbContext.cs
+│       │   └── Configurations/
+│       ├── Services/
+│       │   ├── IDataDictionaryService.cs
+│       │   ├── DataDictionaryService.cs
+│       │   ├── IDatabaseSyncService.cs
+│       │   ├── DatabaseSyncService.cs
+│       │   ├── IEfModelService.cs
+│       │   ├── EfModelService.cs
+│       │   ├── IComparisonService.cs
+│       │   ├── ComparisonService.cs
+│       │   ├── IEfModelSourceService.cs
+│       │   ├── EfModelSourceService.cs
+│       │   ├── DbContextProviders/     # Dynamic DLL loading
+│       │   │   ├── IDbContextProvider.cs
+│       │   │   ├── IDbContextProviderFactory.cs
+│       │   │   ├── DbContextProviderFactory.cs
+│       │   │   ├── DynamicDllProvider.cs
+│       │   │   └── PluginLoadContext.cs
+│       │   └── Security/               # DLL security services
+│       │       ├── IDllValidatorService.cs
+│       │       ├── DllValidatorService.cs
+│       │       ├── IConnectionStringProtector.cs
+│       │       ├── ConnectionStringProtector.cs
+│       │       ├── ISecurityAuditService.cs
+│       │       └── SecurityAuditService.cs
+│       ├── Views/
+│       ├── wwwroot/
+│       ├── appsettings.json
+│       ├── appsettings.Development.json
+│       └── Program.cs
 │
 └── tests/
     └── NetSqlDataDicV2.Tests/
-        └── [Unit tests]
 ```
 
 ## 4. Database Schema
@@ -209,9 +199,14 @@ Stores source database connection information.
 - Tracks sync history
 
 #### EfModelService
-- Reads EF Core model metadata from referenced SourceDbContext
+- Reads EF Core model metadata from dynamically loaded DbContexts
 - Uses IModel API to extract entity types, properties, column mappings
 - Returns list of EfModelColumnDto for comparison
+- Works with EfModelSource configurations for DLL-based loading
+
+#### EfModelSourceService
+- CRUD operations for EfModelSource configurations
+- Manages DLL paths, DbContext types, and connection strings
 
 #### ComparisonService
 - Compares DataElement list with EfModelColumn list
@@ -269,17 +264,21 @@ DatabaseSyncService.SyncAsync()
 
 ### 6.2 Comparison Flow
 ```
-User clicks "Compare"
+User selects EfModelSource and clicks "Compare"
        │
        ▼
-ComparisonController.Compare()
+ComparisonController.CompareSource(sourceId)
+       │
+       ├──► EfModelSourceService.GetById() → EfModelSource config
        │
        ├──► DataDictionaryService.GetByDatabase() → List<DataElement>
        │
-       ├──► EfModelService.GetEfModelColumns() → List<EfModelColumnDto>
+       ├──► EfModelService.GetEfModelColumns(source) → List<EfModelColumnDto>
+       │    │
+       │    └──► DynamicDllProvider loads DbContext from DLL at runtime
        │
        ▼
-ComparisonService.Compare()
+ComparisonService.CompareAsync(sourceId)
        │
        ├──► Build lookup dictionaries (Schema.Table.Column)
        │
@@ -310,22 +309,29 @@ ComparisonService.Compare()
 ```json
 {
   "ConnectionStrings": {
-    "DataDictionary": "Server=.;Database=DataDictionary;Trusted_Connection=True;TrustServerCertificate=True;",
-    "SourceDatabase": "Server=.;Database=YourSourceDb;Trusted_Connection=True;TrustServerCertificate=True;"
+    "DataDictionary": "Server=.;Database=DataDictionary;Trusted_Connection=True;TrustServerCertificate=True;"
   },
-  "SourceDatabase": {
-    "Server": "localhost",
-    "Database": "YourSourceDb"
+  "DllSecurity": {
+    "AllowedDirectories": [],
+    "AllowedExtensions": [".dll"],
+    "RequireSignedAssemblies": false,
+    "MaxFileSizeBytes": 104857600,
+    "BlockedAssemblyNames": []
   }
 }
 ```
 
+EF model comparison sources are configured via the EfModelSources management UI, not appsettings.
+
 ## 9. Security Considerations
 
 1. **Connection Strings**: Store in appsettings.json (development) or environment variables/Azure Key Vault (production)
-2. **No Authentication**: As requested, but can be added later using ASP.NET Core Identity
-3. **SQL Injection**: All database queries use parameterized queries via EF Core
-4. **Input Validation**: Server-side validation on all user inputs
+2. **Connection String Encryption**: EfModelSource connection strings are encrypted at rest using Data Protection API
+3. **DLL Validation**: DLLs are validated before loading (path restrictions, file size limits, blocked assemblies)
+4. **Security Audit Logging**: DLL loads and source configuration changes are logged
+5. **No Authentication**: As requested, but can be added later using ASP.NET Core Identity
+6. **SQL Injection**: All database queries use parameterized queries via EF Core
+7. **Input Validation**: Server-side validation on all user inputs
 
 ## 10. Future Enhancements
 
@@ -338,12 +344,31 @@ ComparisonService.Compare()
 
 ## 11. Implementation Status
 
+### Core Phases
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Project Setup | Completed |
-| Phase 2 | Data Dictionary Core | Not Started |
-| Phase 3 | Sync Feature | Not Started |
-| Phase 4 | EF Core Comparison | Not Started |
-| Phase 5 | Polish & Finalization | Not Started |
+| Phase 1 | Project Setup | Complete |
+| Phase 2 | Data Dictionary Core | Complete |
+| Phase 3 | Sync Feature | Complete |
+| Phase 4 | EF Core Comparison | Complete |
+| Phase 5 | Polish & Finalization | Complete |
+
+### DLL Loading Feature
+| Phase | Description | Status |
+|-------|-------------|--------|
+| DLL Phase 1 | Core Infrastructure | Complete |
+| DLL Phase 2 | Service Layer | Complete |
+| DLL Phase 3 | Data Layer | Complete |
+| DLL Phase 4 | UI Layer | Complete |
+| DLL Phase 5 | Security | Complete |
+| DLL Phase 6 | Error Handling | Complete |
+
+### Simplification Project
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Simplify Phase 1 | Remove Direct Reference | Complete |
+| Simplify Phase 2 | Replace Kendo UI | Pending |
+| Simplify Phase 3 | Cleanup Navigation | Pending |
+| Simplify Phase 4 | Configuration Cleanup | Pending |
 
 **Last Updated:** December 2024

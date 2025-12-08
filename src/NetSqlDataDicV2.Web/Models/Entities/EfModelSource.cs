@@ -13,9 +13,9 @@ public class EfModelSource
     public string Name { get; set; } = string.Empty;
 
     /// <summary>
-    /// Provider type: "Direct" (compile-time reference) or "DynamicDll" (runtime loading).
+    /// Provider type: "DynamicDll" (runtime DLL loading for EF model comparison).
     /// </summary>
-    public string ProviderType { get; set; } = "Direct";
+    public string ProviderType { get; set; } = "DynamicDll";
 
     /// <summary>
     /// Full path to the DLL file (for DynamicDll provider).

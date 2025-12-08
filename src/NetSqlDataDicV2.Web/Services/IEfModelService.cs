@@ -6,12 +6,6 @@ namespace NetSqlDataDicV2.Web.Services;
 public interface IEfModelService
 {
     /// <summary>
-    /// Gets EF model columns from the directly referenced SourceDbContext.
-    /// (Backward compatible - existing functionality)
-    /// </summary>
-    List<EfModelColumnDto> GetEfModelColumns();
-
-    /// <summary>
     /// Gets EF model columns from a configured EfModelSource.
     /// </summary>
     List<EfModelColumnDto> GetEfModelColumns(EfModelSource source);

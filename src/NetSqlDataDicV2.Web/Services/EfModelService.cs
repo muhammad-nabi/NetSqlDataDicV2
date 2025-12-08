@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using NetSqlDataDicV2.SourceModels;
 using NetSqlDataDicV2.Web.Models.Dto;
 using NetSqlDataDicV2.Web.Models.Entities;
 using NetSqlDataDicV2.Web.Services.DbContextProviders;
@@ -9,33 +8,15 @@ namespace NetSqlDataDicV2.Web.Services;
 
 public class EfModelService : IEfModelService
 {
-    private readonly SourceDbContext? _sourceContext;
     private readonly IDbContextProviderFactory _providerFactory;
     private readonly ILogger<EfModelService> _logger;
 
     public EfModelService(
         IDbContextProviderFactory providerFactory,
-        ILogger<EfModelService> logger,
-        SourceDbContext? sourceContext = null)
+        ILogger<EfModelService> logger)
     {
-        _sourceContext = sourceContext;
         _providerFactory = providerFactory;
         _logger = logger;
-    }
-
-    /// <summary>
-    /// Gets EF model columns from the directly referenced SourceDbContext.
-    /// (Backward compatible)
-    /// </summary>
-    public List<EfModelColumnDto> GetEfModelColumns()
-    {
-        if (_sourceContext == null)
-        {
-            _logger.LogWarning("SourceDbContext is not available");
-            return new List<EfModelColumnDto>();
-        }
-
-        return ExtractColumnsFromContext(_sourceContext);
     }
 
     /// <summary>

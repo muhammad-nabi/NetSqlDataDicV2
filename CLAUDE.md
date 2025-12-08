@@ -35,7 +35,6 @@ dotnet ef database update <PreviousMigrationName>
 
 **Solution Structure:**
 - `src/NetSqlDataDicV2.Web` - ASP.NET Core MVC app (.NET 9) with Kendo UI
-- `src/NetSqlDataDicV2.SourceModels` - EF Core scaffolded models from source databases
 - `tests/NetSqlDataDicV2.Tests` - xUnit tests
 - `docs/` - Phase documentation (architecture.md, phase1-5 specs)
 
@@ -58,6 +57,11 @@ Razor Views + Kendo Grid → Controllers → Services → DataDictionaryDbContex
 - Provider pattern for DbContext loading: `IDbContextProvider`, `IDbContextProviderFactory`
 - Plugin architecture with `AssemblyLoadContext` for runtime DLL loading
 
+**EF Model Comparison:**
+- All EF model comparisons use dynamic DLL loading via `EfModelSource` configurations
+- Configure DLL sources in the EF Model Sources management page
+- No compile-time references to source databases required
+
 ## Key Dependencies
 
 | Package | Version | Purpose |
@@ -75,18 +79,13 @@ The project uses Telerik Kendo UI which requires a license:
 
 ## Sync Configuration
 
-To sync from a source database, configure in `appsettings.Development.json`:
-```json
-{
-  "ConnectionStrings": {
-    "SourceDatabase": "Server=...;Database=...;..."
-  },
-  "SourceDatabase": {
-    "Server": "your-server",
-    "Database": "your-database"
-  }
-}
-```
+Database sync pulls schema metadata from a live SQL Server database into the Data Dictionary. Configure the target database connection when initiating a sync from the UI.
+
+For EF model comparison, configure an `EfModelSource` via the management UI with:
+- Path to the DLL containing your DbContext
+- DbContext type name
+- Connection string for model initialization
+- Target server/database to compare against
 
 ## Project Phases
 
@@ -114,6 +113,19 @@ Runtime loading of EF Core DbContexts from external DLLs for comparison without 
 | 6 | Complete | Error handling |
 
 Detailed specs in `docs/dll-loading-phases/`.
+
+## Simplification Project
+
+Ongoing effort to reduce complexity and remove licensing dependencies.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Remove Direct Reference provider & SourceModels project |
+| 2 | Pending | Replace Kendo UI with DataTables (free) |
+| 3 | Pending | Cleanup navigation (remove Privacy page, simplify Home) |
+| 4 | Pending | Configuration cleanup & final polish |
+
+Detailed specs in `docs/simplification-phases/`.
 
 ## Security Configuration
 
