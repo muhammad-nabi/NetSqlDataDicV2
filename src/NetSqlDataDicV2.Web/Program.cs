@@ -1,8 +1,11 @@
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using NetSqlDataDicV2.SourceModels;
+using NetSqlDataDicV2.Web.Configuration;
 using NetSqlDataDicV2.Web.Data;
 using NetSqlDataDicV2.Web.Services;
 using NetSqlDataDicV2.Web.Services.DbContextProviders;
+using NetSqlDataDicV2.Web.Services.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,6 +29,21 @@ builder.Services.AddControllersWithViews()
 
 // Add Kendo UI services
 builder.Services.AddKendo();
+
+// Add Data Protection (required for connection string encryption)
+// Keys are persisted to the application's content root by default in Development
+// For Production, configure key storage (Azure Key Vault, AWS, or file system)
+builder.Services.AddDataProtection()
+    .SetApplicationName("NetSqlDataDicV2");
+
+// Configure DLL security options
+builder.Services.Configure<DllSecurityOptions>(
+    builder.Configuration.GetSection(DllSecurityOptions.SectionName));
+
+// Register security services
+builder.Services.AddScoped<IDllValidatorService, DllValidatorService>();
+builder.Services.AddScoped<IConnectionStringProtector, ConnectionStringProtector>();
+builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
 // Add DbContext for Data Dictionary
 builder.Services.AddDbContext<DataDictionaryDbContext>(options =>

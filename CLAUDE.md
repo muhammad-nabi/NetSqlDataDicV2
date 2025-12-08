@@ -110,7 +110,28 @@ Runtime loading of EF Core DbContexts from external DLLs for comparison without 
 | 2 | Complete | Service layer (factory pattern, EfModelService) |
 | 3 | Complete | Data layer (EfModelSource entity, CRUD service) |
 | 4 | Complete | UI layer (management pages, comparison integration) |
-| 5 | Pending | Security & validation |
+| 5 | Complete | Security & validation |
 | 6 | Pending | Error handling |
 
 Detailed specs in `docs/dll-loading-phases/`.
+
+## Security Configuration
+
+DLL loading security is configured in `appsettings.json` under `DllSecurity`:
+
+```json
+{
+  "DllSecurity": {
+    "AllowedDirectories": ["C:\\PluginDlls"],
+    "AllowedExtensions": [".dll"],
+    "RequireSignedAssemblies": false,
+    "MaxFileSizeBytes": 104857600,
+    "BlockedAssemblyNames": []
+  }
+}
+```
+
+**Security Services:**
+- `IDllValidatorService` - Validates DLL paths and assemblies before loading
+- `IConnectionStringProtector` - Encrypts connection strings at rest using Data Protection API
+- `ISecurityAuditService` - Logs security events (DLL loads, source changes)

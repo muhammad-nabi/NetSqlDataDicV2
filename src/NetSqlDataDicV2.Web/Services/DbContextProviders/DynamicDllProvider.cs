@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetSqlDataDicV2.Web.Models.Entities;
+using NetSqlDataDicV2.Web.Services.Security;
 using System.Reflection;
 
 namespace NetSqlDataDicV2.Web.Services.DbContextProviders;
@@ -10,12 +11,22 @@ namespace NetSqlDataDicV2.Web.Services.DbContextProviders;
 /// </summary>
 public class DynamicDllProvider : IDbContextProvider
 {
+    private readonly IDllValidatorService _validator;
+    private readonly IConnectionStringProtector _connectionStringProtector;
+    private readonly ISecurityAuditService _auditService;
     private readonly ILogger<DynamicDllProvider> _logger;
     private PluginLoadContext? _loadContext;
     private bool _disposed;
 
-    public DynamicDllProvider(ILogger<DynamicDllProvider> logger)
+    public DynamicDllProvider(
+        IDllValidatorService validator,
+        IConnectionStringProtector connectionStringProtector,
+        ISecurityAuditService auditService,
+        ILogger<DynamicDllProvider> logger)
     {
+        _validator = validator;
+        _connectionStringProtector = connectionStringProtector;
+        _auditService = auditService;
         _logger = logger;
     }
 
@@ -36,11 +47,12 @@ public class DynamicDllProvider : IDbContextProvider
 
         var assemblyPath = source.AssemblyPath!;
 
-        // Validate file exists
-        if (!File.Exists(assemblyPath))
+        // Validate DLL before loading (security check)
+        var validation = _validator.ValidateDll(assemblyPath);
+        if (!validation.IsValid)
         {
-            _logger.LogError("Assembly file not found: {Path}", assemblyPath);
-            return DbContextProviderResult.Fail($"Assembly file not found: {assemblyPath}");
+            _auditService.LogDllValidationFailure(assemblyPath, validation.ErrorMessage!);
+            return DbContextProviderResult.Fail(validation.ErrorMessage!);
         }
 
         try
@@ -68,15 +80,24 @@ public class DynamicDllProvider : IDbContextProvider
 
             _logger.LogInformation("Found DbContext type: {Type}", dbContextType.FullName);
 
+            // Decrypt connection string if needed
+            var connectionString = source.ConnectionString;
+            if (!string.IsNullOrEmpty(connectionString))
+            {
+                connectionString = _connectionStringProtector.Unprotect(connectionString);
+            }
+
             // Create DbContext instance
-            var context = CreateDbContextInstance(dbContextType, source.ConnectionString);
+            var context = CreateDbContextInstance(dbContextType, connectionString);
 
             if (context == null)
             {
+                _auditService.LogDllLoadAttempt(assemblyPath, false, $"Failed to create instance of {dbContextType.FullName}");
                 return DbContextProviderResult.Fail($"Failed to create instance of {dbContextType.FullName}");
             }
 
             _logger.LogInformation("Successfully created DbContext instance: {Type}", dbContextType.FullName);
+            _auditService.LogDllLoadAttempt(assemblyPath, true);
 
             return DbContextProviderResult.Ok(
                 context,
@@ -87,6 +108,7 @@ public class DynamicDllProvider : IDbContextProvider
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to load DbContext from {Path}", assemblyPath);
+            _auditService.LogDllLoadAttempt(assemblyPath, false, ex.Message);
             return DbContextProviderResult.Fail($"Failed to load DbContext: {ex.Message}");
         }
     }

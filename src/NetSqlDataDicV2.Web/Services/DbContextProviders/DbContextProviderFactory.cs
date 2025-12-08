@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetSqlDataDicV2.Web.Models.Dto;
 using NetSqlDataDicV2.Web.Models.Entities;
+using NetSqlDataDicV2.Web.Services.Security;
 
 namespace NetSqlDataDicV2.Web.Services.DbContextProviders;
 
@@ -11,6 +12,9 @@ namespace NetSqlDataDicV2.Web.Services.DbContextProviders;
 public class DbContextProviderFactory : IDbContextProviderFactory
 {
     private readonly IServiceProvider _serviceProvider;
+    private readonly IDllValidatorService _dllValidator;
+    private readonly IConnectionStringProtector _connectionStringProtector;
+    private readonly ISecurityAuditService _auditService;
     private readonly ILogger<DbContextProviderFactory> _logger;
     private readonly ILogger<DynamicDllProvider> _dllProviderLogger;
     private readonly ILogger<DirectReferenceProvider> _directProviderLogger;
@@ -19,11 +23,17 @@ public class DbContextProviderFactory : IDbContextProviderFactory
 
     public DbContextProviderFactory(
         IServiceProvider serviceProvider,
+        IDllValidatorService dllValidator,
+        IConnectionStringProtector connectionStringProtector,
+        ISecurityAuditService auditService,
         ILogger<DbContextProviderFactory> logger,
         ILogger<DynamicDllProvider> dllProviderLogger,
         ILogger<DirectReferenceProvider> directProviderLogger)
     {
         _serviceProvider = serviceProvider;
+        _dllValidator = dllValidator;
+        _connectionStringProtector = connectionStringProtector;
+        _auditService = auditService;
         _logger = logger;
         _dllProviderLogger = dllProviderLogger;
         _directProviderLogger = directProviderLogger;
@@ -37,7 +47,11 @@ public class DbContextProviderFactory : IDbContextProviderFactory
         return source.ProviderType switch
         {
             "Direct" => new DirectReferenceProvider(_serviceProvider, _directProviderLogger),
-            "DynamicDll" => new DynamicDllProvider(_dllProviderLogger),
+            "DynamicDll" => new DynamicDllProvider(
+                _dllValidator,
+                _connectionStringProtector,
+                _auditService,
+                _dllProviderLogger),
             _ => throw new ArgumentException($"Unknown provider type: {source.ProviderType}")
         };
     }
@@ -51,9 +65,11 @@ public class DbContextProviderFactory : IDbContextProviderFactory
     {
         var result = new List<DbContextInfo>();
 
-        if (!File.Exists(assemblyPath))
+        // Validate DLL before loading (security check)
+        var validation = _dllValidator.ValidateDll(assemblyPath);
+        if (!validation.IsValid)
         {
-            _logger.LogWarning("Assembly file not found: {Path}", assemblyPath);
+            _logger.LogWarning("DLL validation failed for {Path}: {Error}", assemblyPath, validation.ErrorMessage);
             return result;
         }
 

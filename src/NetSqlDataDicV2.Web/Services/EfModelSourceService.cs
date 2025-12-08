@@ -3,6 +3,7 @@ using NetSqlDataDicV2.Web.Data;
 using NetSqlDataDicV2.Web.Models.Entities;
 using NetSqlDataDicV2.Web.Models.ViewModels;
 using NetSqlDataDicV2.Web.Services.DbContextProviders;
+using NetSqlDataDicV2.Web.Services.Security;
 
 namespace NetSqlDataDicV2.Web.Services;
 
@@ -10,15 +11,21 @@ public class EfModelSourceService : IEfModelSourceService
 {
     private readonly DataDictionaryDbContext _context;
     private readonly IDbContextProviderFactory _providerFactory;
+    private readonly IConnectionStringProtector _connectionStringProtector;
+    private readonly ISecurityAuditService _auditService;
     private readonly ILogger<EfModelSourceService> _logger;
 
     public EfModelSourceService(
         DataDictionaryDbContext context,
         IDbContextProviderFactory providerFactory,
+        IConnectionStringProtector connectionStringProtector,
+        ISecurityAuditService auditService,
         ILogger<EfModelSourceService> logger)
     {
         _context = context;
         _providerFactory = providerFactory;
+        _connectionStringProtector = connectionStringProtector;
+        _auditService = auditService;
         _logger = logger;
     }
 
@@ -65,13 +72,18 @@ public class EfModelSourceService : IEfModelSourceService
     {
         _logger.LogInformation("Creating new EF model source: {Name}", model.Name);
 
+        // Encrypt connection string before storage
+        var encryptedConnectionString = !string.IsNullOrEmpty(model.ConnectionString)
+            ? _connectionStringProtector.Protect(model.ConnectionString)
+            : null;
+
         var source = new EfModelSource
         {
             Name = model.Name,
             ProviderType = model.ProviderType,
             AssemblyPath = model.AssemblyPath,
             DbContextTypeName = model.DbContextTypeName,
-            ConnectionString = model.ConnectionString, // TODO: Encrypt in Phase 5
+            ConnectionString = encryptedConnectionString,
             TargetServer = model.TargetServer,
             TargetDatabase = model.TargetDatabase,
             Description = model.Description,
@@ -83,6 +95,7 @@ public class EfModelSourceService : IEfModelSourceService
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Created EF model source with ID: {Id}", source.Id);
+        _auditService.LogSourceCreated(source.Id, source.Name, GetCurrentUserName());
 
         return source;
     }
@@ -111,9 +124,10 @@ public class EfModelSourceService : IEfModelSourceService
         source.IsActive = model.IsActive;
 
         // Only update connection string if provided (to avoid overwriting with empty)
+        // Encrypt the new connection string before storage
         if (!string.IsNullOrEmpty(model.ConnectionString))
         {
-            source.ConnectionString = model.ConnectionString; // TODO: Encrypt in Phase 5
+            source.ConnectionString = _connectionStringProtector.Protect(model.ConnectionString);
         }
 
         await _context.SaveChangesAsync(ct);
@@ -132,12 +146,14 @@ public class EfModelSourceService : IEfModelSourceService
             throw new ArgumentException($"EfModelSource with ID {id} not found.");
         }
 
-        _logger.LogInformation("Deleting EF model source: {Id} - {Name}", id, source.Name);
+        var sourceName = source.Name;
+        _logger.LogInformation("Deleting EF model source: {Id} - {Name}", id, sourceName);
 
         _context.EfModelSources.Remove(source);
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Deleted EF model source: {Id}", id);
+        _auditService.LogSourceDeleted(id, sourceName, GetCurrentUserName());
     }
 
     public async Task UpdateLastComparedAsync(int id, CancellationToken ct = default)
@@ -298,5 +314,12 @@ public class EfModelSourceService : IEfModelSourceService
             // Don't expose connection string in view model
             HasConnectionString = !string.IsNullOrEmpty(source.ConnectionString)
         };
+    }
+
+    private static string GetCurrentUserName()
+    {
+        // Get from HttpContext if authentication is configured
+        // For now, return "system" as placeholder - implement based on auth setup
+        return "system";
     }
 }
