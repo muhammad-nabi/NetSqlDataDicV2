@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using NetSqlDataDicV2.SourceModels;
 using NetSqlDataDicV2.Web.Configuration;
 using NetSqlDataDicV2.Web.Data;
+using NetSqlDataDicV2.Web.Middleware;
 using NetSqlDataDicV2.Web.Services;
 using NetSqlDataDicV2.Web.Services.DbContextProviders;
 using NetSqlDataDicV2.Web.Services.Security;
@@ -76,6 +77,9 @@ builder.Services.AddScoped<IComparisonService, ComparisonService>();
 var app = builder.Build();
 
 // Configure pipeline
+// Add global exception handling middleware first
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

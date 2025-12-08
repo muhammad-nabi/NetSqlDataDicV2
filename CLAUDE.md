@@ -111,7 +111,7 @@ Runtime loading of EF Core DbContexts from external DLLs for comparison without 
 | 3 | Complete | Data layer (EfModelSource entity, CRUD service) |
 | 4 | Complete | UI layer (management pages, comparison integration) |
 | 5 | Complete | Security & validation |
-| 6 | Pending | Error handling |
+| 6 | Complete | Error handling |
 
 Detailed specs in `docs/dll-loading-phases/`.
 
@@ -135,3 +135,23 @@ DLL loading security is configured in `appsettings.json` under `DllSecurity`:
 - `IDllValidatorService` - Validates DLL paths and assemblies before loading
 - `IConnectionStringProtector` - Encrypts connection strings at rest using Data Protection API
 - `ISecurityAuditService` - Logs security events (DLL loads, source changes)
+
+## Error Handling
+
+Custom exceptions for DLL loading operations in `/Exceptions/`:
+
+| Exception | Purpose |
+|-----------|---------|
+| `DllLoadException` | Assembly loading failures (file not found, invalid format, security violation) |
+| `DbContextCreationException` | DbContext instantiation failures (type not found, constructor failed) |
+| `DependencyResolutionException` | Missing assembly dependencies |
+| `EfModelSourceException` | Source configuration errors |
+
+**Error Handling Infrastructure:**
+- `ErrorMessages` helper (`/Helpers/`) - Centralized user-friendly messages with path sanitization
+- `ExceptionHandlingMiddleware` (`/Middleware/`) - Global exception handler with correlation IDs
+- `OperationResult<T>` (`/Models/`) - Generic result types for service operations
+
+**Error Response Behavior:**
+- API requests (`/api/*` or JSON Accept header): Returns JSON with error, correlationId, details (dev only)
+- Page requests: Redirects to `/Home/Error` with message and correlationId

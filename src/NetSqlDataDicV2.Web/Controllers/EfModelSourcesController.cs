@@ -1,4 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
+using NetSqlDataDicV2.Web.Exceptions;
+using NetSqlDataDicV2.Web.Helpers;
 using NetSqlDataDicV2.Web.Models.ViewModels;
 using NetSqlDataDicV2.Web.Services;
 using NetSqlDataDicV2.Web.Services.DbContextProviders;
@@ -160,10 +162,14 @@ public class EfModelSourcesController : Controller
             await _sourceService.DeleteAsync(id, ct);
             return Json(new { success = true, message = "Source deleted successfully." });
         }
+        catch (ArgumentException ex)
+        {
+            return Json(new { success = false, message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to delete source {Id}", id);
-            return Json(new { success = false, message = ex.Message });
+            return Json(new { success = false, message = ErrorMessages.UnexpectedError() });
         }
     }
 
@@ -191,8 +197,38 @@ public class EfModelSourcesController : Controller
     [HttpPost]
     public async Task<IActionResult> Validate(int id, CancellationToken ct)
     {
-        var result = await _sourceService.ValidateSourceAsync(id, ct);
-        return Json(result);
+        try
+        {
+            var result = await _sourceService.ValidateSourceAsync(id, ct);
+            return Json(result);
+        }
+        catch (DllLoadException ex)
+        {
+            _logger.LogWarning(ex, "DLL validation failed for source {Id}", id);
+            return Json(new ValidationResultViewModel
+            {
+                IsValid = false,
+                ErrorMessage = ex.Message
+            });
+        }
+        catch (DbContextCreationException ex)
+        {
+            _logger.LogWarning(ex, "DbContext creation failed for source {Id}", id);
+            return Json(new ValidationResultViewModel
+            {
+                IsValid = false,
+                ErrorMessage = ex.Message
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error validating source {Id}", id);
+            return Json(new ValidationResultViewModel
+            {
+                IsValid = false,
+                ErrorMessage = ErrorMessages.UnexpectedError()
+            });
+        }
     }
 
     /// <summary>
@@ -211,10 +247,20 @@ public class EfModelSourcesController : Controller
             var dbContexts = _providerFactory.DiscoverDbContexts(request.AssemblyPath);
             return Json(new { success = true, dbContexts });
         }
+        catch (DllLoadException ex)
+        {
+            _logger.LogWarning(ex, "DLL load failed during discovery: {Path}", request.AssemblyPath);
+            return Json(new { success = false, message = ex.Message });
+        }
+        catch (DependencyResolutionException ex)
+        {
+            _logger.LogWarning(ex, "Missing dependencies during discovery: {Path}", request.AssemblyPath);
+            return Json(new { success = false, message = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to discover DbContexts in {Path}", request.AssemblyPath);
-            return Json(new { success = false, message = ex.Message });
+            return Json(new { success = false, message = ErrorMessages.UnexpectedError() });
         }
     }
 

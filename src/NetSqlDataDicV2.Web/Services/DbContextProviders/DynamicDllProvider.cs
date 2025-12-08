@@ -1,8 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NetSqlDataDicV2.Web.Exceptions;
+using NetSqlDataDicV2.Web.Helpers;
 using NetSqlDataDicV2.Web.Models.Entities;
 using NetSqlDataDicV2.Web.Services.Security;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace NetSqlDataDicV2.Web.Services.DbContextProviders;
 
@@ -52,7 +55,7 @@ public class DynamicDllProvider : IDbContextProvider
         if (!validation.IsValid)
         {
             _auditService.LogDllValidationFailure(assemblyPath, validation.ErrorMessage!);
-            return DbContextProviderResult.Fail(validation.ErrorMessage!);
+            return DbContextProviderResult.Fail(GetUserFriendlyValidationMessage(validation.ErrorMessage!));
         }
 
         try
@@ -63,29 +66,77 @@ public class DynamicDllProvider : IDbContextProvider
             _loadContext = new PluginLoadContext(assemblyPath);
 
             // Load the assembly
-            var assembly = _loadContext.LoadFromAssemblyPath(assemblyPath);
+            Assembly assembly;
+            try
+            {
+                assembly = _loadContext.LoadFromAssemblyPath(assemblyPath);
+            }
+            catch (FileNotFoundException ex)
+            {
+                _logger.LogError(ex, "Assembly file not found: {Path}", assemblyPath);
+                throw new DllLoadException(
+                    assemblyPath,
+                    DllLoadErrorType.FileNotFound,
+                    ErrorMessages.DllNotFound(assemblyPath),
+                    ex);
+            }
+            catch (BadImageFormatException ex)
+            {
+                _logger.LogError(ex, "Invalid assembly format: {Path}", assemblyPath);
+                throw new DllLoadException(
+                    assemblyPath,
+                    DllLoadErrorType.InvalidAssembly,
+                    ErrorMessages.InvalidDll(assemblyPath),
+                    ex);
+            }
+            catch (FileLoadException ex)
+            {
+                _logger.LogError(ex, "Failed to load assembly: {Path}", assemblyPath);
+
+                // Check for dependency issues
+                var missingDeps = TryIdentifyMissingDependencies(ex);
+                if (missingDeps.Count > 0)
+                {
+                    throw new DependencyResolutionException(
+                        assemblyPath,
+                        missingDeps,
+                        ErrorMessages.MissingDependencies(missingDeps),
+                        ex);
+                }
+
+                throw new DllLoadException(
+                    assemblyPath,
+                    DllLoadErrorType.LoadFailed,
+                    "Failed to load assembly. Check that all dependencies are present.",
+                    ex);
+            }
 
             // Find DbContext type
             var dbContextType = FindDbContextType(assembly, source.DbContextTypeName);
+            var assemblyName = assembly.GetName().Name ?? "unknown";
 
             if (dbContextType == null)
             {
-                var message = string.IsNullOrEmpty(source.DbContextTypeName)
-                    ? "No DbContext type found in assembly."
-                    : $"DbContext type '{source.DbContextTypeName}' not found in assembly.";
+                if (string.IsNullOrEmpty(source.DbContextTypeName))
+                {
+                    throw new DbContextCreationException(
+                        "any",
+                        assemblyPath,
+                        DbContextCreationErrorType.TypeNotFound,
+                        ErrorMessages.NoDbContextInAssembly(assemblyName));
+                }
 
-                _logger.LogError(message);
-                return DbContextProviderResult.Fail(message);
+                throw new DbContextCreationException(
+                    source.DbContextTypeName,
+                    assemblyPath,
+                    DbContextCreationErrorType.TypeNotFound,
+                    ErrorMessages.DbContextNotFound(source.DbContextTypeName, assemblyName));
             }
 
             _logger.LogInformation("Found DbContext type: {Type}", dbContextType.FullName);
 
             // Decrypt connection string if needed
-            var connectionString = source.ConnectionString;
-            if (!string.IsNullOrEmpty(connectionString))
-            {
-                connectionString = _connectionStringProtector.Unprotect(connectionString);
-            }
+            var connectionString = DecryptConnectionString(source.ConnectionString);
 
             // Create DbContext instance
             var context = CreateDbContextInstance(dbContextType, connectionString);
@@ -93,7 +144,11 @@ public class DynamicDllProvider : IDbContextProvider
             if (context == null)
             {
                 _auditService.LogDllLoadAttempt(assemblyPath, false, $"Failed to create instance of {dbContextType.FullName}");
-                return DbContextProviderResult.Fail($"Failed to create instance of {dbContextType.FullName}");
+                throw new DbContextCreationException(
+                    dbContextType.FullName ?? dbContextType.Name,
+                    assemblyPath,
+                    DbContextCreationErrorType.ConstructorFailed,
+                    ErrorMessages.DbContextConstructorFailed(dbContextType.Name));
             }
 
             _logger.LogInformation("Successfully created DbContext instance: {Type}", dbContextType.FullName);
@@ -105,11 +160,83 @@ public class DynamicDllProvider : IDbContextProvider
                 _loadContext,
                 assemblyPath);
         }
+        catch (DllLoadException)
+        {
+            throw; // Re-throw custom exceptions
+        }
+        catch (DbContextCreationException)
+        {
+            throw;
+        }
+        catch (DependencyResolutionException)
+        {
+            throw;
+        }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to load DbContext from {Path}", assemblyPath);
+            _logger.LogError(ex, "Unexpected error loading DbContext from {Path}", assemblyPath);
             _auditService.LogDllLoadAttempt(assemblyPath, false, ex.Message);
-            return DbContextProviderResult.Fail($"Failed to load DbContext: {ex.Message}");
+
+            throw new DllLoadException(
+                assemblyPath,
+                DllLoadErrorType.UnknownError,
+                ErrorMessages.UnexpectedError(),
+                ex);
+        }
+    }
+
+    private List<string> TryIdentifyMissingDependencies(Exception ex)
+    {
+        var missing = new List<string>();
+
+        // Parse exception message for dependency hints
+        var message = ex.ToString();
+
+        if (message.Contains("Could not load file or assembly"))
+        {
+            // Try to extract assembly name
+            var match = Regex.Match(
+                message,
+                @"Could not load file or assembly '([^']+)'");
+
+            if (match.Success)
+            {
+                missing.Add(match.Groups[1].Value);
+            }
+        }
+
+        return missing;
+    }
+
+    private string GetUserFriendlyValidationMessage(string technicalMessage)
+    {
+        // Convert technical validation messages to user-friendly ones
+        if (technicalMessage.Contains("not in an allowed directory"))
+            return ErrorMessages.DllSecurityViolation();
+
+        if (technicalMessage.Contains("not found"))
+            return ErrorMessages.DllNotFound("");
+
+        if (technicalMessage.Contains("not a valid .NET assembly"))
+            return ErrorMessages.InvalidDll("");
+
+        return technicalMessage;
+    }
+
+    private string? DecryptConnectionString(string? connectionString)
+    {
+        if (string.IsNullOrEmpty(connectionString))
+            return null;
+
+        try
+        {
+            return _connectionStringProtector.Unprotect(connectionString);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to decrypt connection string");
+            throw new InvalidOperationException(
+                "Failed to decrypt connection string. The encryption key may have changed.");
         }
     }
 
