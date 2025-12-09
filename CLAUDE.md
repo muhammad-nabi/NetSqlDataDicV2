@@ -34,13 +34,13 @@ dotnet ef database update <PreviousMigrationName>
 ## Architecture
 
 **Solution Structure:**
-- `src/NetSqlDataDicV2.Web` - ASP.NET Core MVC app (.NET 9) with Kendo UI
+- `src/NetSqlDataDicV2.Web` - ASP.NET Core MVC app (.NET 9) with Bootstrap 5 + DataTables
 - `tests/NetSqlDataDicV2.Tests` - xUnit tests
 - `docs/` - Phase documentation (architecture.md, phase1-5 specs)
 
 **Data Flow:**
 ```
-Razor Views + Kendo Grid → Controllers → Services → DataDictionaryDbContext → SQL Server
+Razor Views + DataTables → Controllers → Services → DataDictionaryDbContext → SQL Server
 ```
 
 **Key Entities:**
@@ -93,7 +93,7 @@ For EF model comparison, configure an `EfModelSource` via the management UI with
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | Complete | Project setup, DbContext, migrations |
-| 2 | Complete | Data Dictionary Kendo Grid UI |
+| 2 | Complete | Data Dictionary Grid UI |
 | 3 | Complete | Database sync from source SQL Server |
 | 4 | Complete | EF Core model comparison |
 | 5 | Complete | Polish, error handling, CSV export |
@@ -123,8 +123,8 @@ Ongoing effort to reduce complexity and remove licensing dependencies.
 |-------|--------|-------------|
 | 1 | Complete | Remove Direct Reference provider & SourceModels project |
 | 2 | Complete | Replace Kendo UI with DataTables (free) |
-| 3 | Pending | Cleanup navigation (remove Privacy page, simplify Home) |
-| 4 | Pending | Configuration cleanup & final polish |
+| 3 | Complete | Cleanup navigation (remove Privacy page, simplify Home) |
+| 4 | Complete | Configuration cleanup & final polish |
 
 Detailed specs in `docs/simplification-phases/`.
 
