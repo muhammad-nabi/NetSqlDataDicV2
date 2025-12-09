@@ -46,7 +46,7 @@
                                 <input asp-for="AssemblyPath" class="form-control"
                                     placeholder="e.g., C:\Projects\MyApp\bin\Debug\net9.0\MyApp.dll" />
                                 <button type="button" class="btn btn-outline-secondary" onclick="discoverDbContexts()">
-                                    <i class="fas fa-search"></i> Discover
+                                    Discover
                                 </button>
                             </div>
                             <span asp-validation-for="AssemblyPath" class="text-danger"></span>
@@ -128,11 +128,11 @@
         function discoverDbContexts() {
             var assemblyPath = $('#AssemblyPath').val();
             if (!assemblyPath) {
-                kendo.alert('Please enter an assembly path first.');
+                DataTableHelpers.alert('Please enter an assembly path first.');
                 return;
             }
 
-            kendo.ui.progress($('body'), true);
+            DataTableHelpers.showProgress(true);
 
             $.ajax({
                 url: '@Url.Action("DiscoverDbContexts")',
@@ -140,6 +140,7 @@
                 contentType: 'application/json',
                 data: JSON.stringify({ assemblyPath: assemblyPath }),
                 success: function(result) {
+                    DataTableHelpers.showProgress(false);
                     if (result.success) {
                         var dropdown = $('#DbContextTypeName');
 
@@ -164,17 +165,15 @@
                             dropdown.empty().append('<option value="">-- Select DbContext --</option>');
                             dropdown.prop('disabled', true);
                             $('#discoveryResults').hide();
-                            kendo.alert('No DbContext types found in the assembly.');
+                            DataTableHelpers.alert('No DbContext types found in the assembly.');
                         }
                     } else {
-                        kendo.alert('Discovery failed: ' + result.message);
+                        DataTableHelpers.alert('Discovery failed: ' + result.message);
                     }
                 },
                 error: function() {
-                    kendo.alert('Error discovering DbContexts');
-                },
-                complete: function() {
-                    kendo.ui.progress($('body'), false);
+                    DataTableHelpers.showProgress(false);
+                    DataTableHelpers.alert('Error discovering DbContexts');
                 }
             });
         }

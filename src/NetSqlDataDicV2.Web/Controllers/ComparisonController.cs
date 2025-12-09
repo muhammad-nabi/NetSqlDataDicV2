@@ -1,5 +1,3 @@
-using Kendo.Mvc.Extensions;
-using Kendo.Mvc.UI;
 using Microsoft.AspNetCore.Mvc;
 using NetSqlDataDicV2.Web.Models.ViewModels;
 using NetSqlDataDicV2.Web.Services;

@@ -1,7 +1,7 @@
 using System.Text;
-using Kendo.Mvc.Extensions;
-using Kendo.Mvc.UI;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using NetSqlDataDicV2.Web.Models;
 using NetSqlDataDicV2.Web.Models.ViewModels;
 using NetSqlDataDicV2.Web.Services;
 
@@ -28,7 +28,7 @@ public class DataDictionaryController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Read([DataSourceRequest] DataSourceRequest request)
+    public async Task<IActionResult> Read([FromBody] PaginationRequest request, CancellationToken ct)
     {
         try
         {
@@ -58,8 +58,37 @@ public class DataDictionaryController : Controller
                     LastSyncTime = e.LastSyncTime
                 });
 
-            var result = await query.ToDataSourceResultAsync(request);
-            return Json(result);
+            // Apply filters
+            if (request.Filters != null)
+            {
+                if (request.Filters.TryGetValue("server", out var serverFilter) && !string.IsNullOrEmpty(serverFilter))
+                {
+                    query = query.Where(e => e.DatabaseServer == serverFilter);
+                }
+                if (request.Filters.TryGetValue("database", out var databaseFilter) && !string.IsNullOrEmpty(databaseFilter))
+                {
+                    query = query.Where(e => e.DatabaseName == databaseFilter);
+                }
+            }
+
+            // Apply search
+            if (!string.IsNullOrEmpty(request.SearchTerm))
+            {
+                var term = request.SearchTerm.ToLower();
+                query = query.Where(e =>
+                    (e.ColumnName != null && e.ColumnName.ToLower().Contains(term)) ||
+                    (e.TableName != null && e.TableName.ToLower().Contains(term)) ||
+                    (e.DataPurpose != null && e.DataPurpose.ToLower().Contains(term)) ||
+                    (e.Notes != null && e.Notes.ToLower().Contains(term)));
+            }
+
+            // Apply sorting
+            query = ApplySorting(query, request.SortField, request.SortDirection);
+
+            var total = await query.CountAsync(ct);
+            var data = await query.Skip(request.Skip).Take(request.PageSize).ToListAsync(ct);
+
+            return Json(PaginationResponse<DataElementViewModel>.Create(data, total, request));
         }
         catch (Exception ex)
         {
@@ -69,13 +98,11 @@ public class DataDictionaryController : Controller
     }
 
     [HttpPost]
-    public async Task<IActionResult> Update(
-        [DataSourceRequest] DataSourceRequest request,
-        DataElementViewModel model)
+    public async Task<IActionResult> Update([FromBody] DataElementViewModel model)
     {
         if (!ModelState.IsValid)
         {
-            return Json(new[] { model }.ToDataSourceResult(request, ModelState));
+            return Json(new { success = false, errors = ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage)) });
         }
 
         try
@@ -90,13 +117,12 @@ public class DataDictionaryController : Controller
             };
 
             var updated = await _service.UpdateAsync(updateModel);
-            return Json(new[] { updated }.ToDataSourceResult(request, ModelState));
+            return Json(new { success = true, data = updated });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error updating data element {Id}", model.DataElementId);
-            ModelState.AddModelError("", "An error occurred while saving");
-            return Json(new[] { model }.ToDataSourceResult(request, ModelState));
+            return Json(new { success = false, errors = new[] { "An error occurred while saving" } });
         }
     }
 
@@ -137,5 +163,24 @@ public class DataDictionaryController : Controller
     {
         if (string.IsNullOrEmpty(value)) return "";
         return value.Replace("\"", "\"\"").Replace("\n", " ").Replace("\r", "");
+    }
+
+    private static IQueryable<DataElementViewModel> ApplySorting(IQueryable<DataElementViewModel> query, string? field, string direction)
+    {
+        var isDesc = direction?.ToLower() == "desc";
+        return field?.ToLower() switch
+        {
+            "databaseserver" => isDesc ? query.OrderByDescending(e => e.DatabaseServer) : query.OrderBy(e => e.DatabaseServer),
+            "databasename" => isDesc ? query.OrderByDescending(e => e.DatabaseName) : query.OrderBy(e => e.DatabaseName),
+            "schemaname" => isDesc ? query.OrderByDescending(e => e.SchemaName) : query.OrderBy(e => e.SchemaName),
+            "tablename" => isDesc ? query.OrderByDescending(e => e.TableName) : query.OrderBy(e => e.TableName),
+            "columnname" => isDesc ? query.OrderByDescending(e => e.ColumnName) : query.OrderBy(e => e.ColumnName),
+            "datatype" => isDesc ? query.OrderByDescending(e => e.DataType) : query.OrderBy(e => e.DataType),
+            "isnullable" => isDesc ? query.OrderByDescending(e => e.IsNullable) : query.OrderBy(e => e.IsNullable),
+            "isprimarykey" => isDesc ? query.OrderByDescending(e => e.IsPrimaryKey) : query.OrderBy(e => e.IsPrimaryKey),
+            "datapurpose" => isDesc ? query.OrderByDescending(e => e.DataPurpose) : query.OrderBy(e => e.DataPurpose),
+            "notes" => isDesc ? query.OrderByDescending(e => e.Notes) : query.OrderBy(e => e.Notes),
+            _ => query.OrderBy(e => e.TableName).ThenBy(e => e.ColumnName)
+        };
     }
 }

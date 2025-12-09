@@ -21,9 +21,6 @@ builder.Services.AddControllersWithViews()
             System.Text.Json.JsonNamingPolicy.CamelCase;
     });
 
-// Add Kendo UI services
-builder.Services.AddKendo();
-
 // Add Data Protection (required for connection string encryption)
 // Keys are persisted to the application's content root by default in Development
 // For Production, configure key storage (Azure Key Vault, AWS, or file system)

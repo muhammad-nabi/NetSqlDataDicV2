@@ -3,25 +3,86 @@
     ViewData["Title"] = "EF Model Sources";
 }
 
-<div class="container-fluid py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2>EF Model Sources</h2>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add Source
-        </a>
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>EF Model Sources</h2>
+    <a asp-action="Create" class="btn btn-primary btn-sm">
+        + Add Source
+    </a>
+</div>
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show py-2" role="alert">
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+}
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
-
-    <div class="card">
-        <div class="card-body">
-            <div id="sourcesGrid"></div>
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table id="sourcesGrid" class="table table-striped table-hover table-sm mb-0" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Target</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var source in Model)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@source.Name</strong>
+                                <br/>
+                                <small class="text-muted" title="@source.DbContextTypeName">
+                                    @if (!string.IsNullOrEmpty(source.DbContextTypeName))
+                                    {
+                                        var shortName = source.DbContextTypeName.Contains('.')
+                                            ? source.DbContextTypeName.Substring(source.DbContextTypeName.LastIndexOf('.') + 1)
+                                            : source.DbContextTypeName;
+                                        @shortName
+                                    }
+                                </small>
+                            </td>
+                            <td>
+                                <span title="@source.TargetDisplay">@source.TargetDisplay</span>
+                                <br/>
+                                @if (source.ProviderType == "DynamicDll")
+                                {
+                                    <span class="badge bg-info" style="font-size:0.65rem">DLL</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary" style="font-size:0.65rem">Direct</span>
+                                }
+                            </td>
+                            <td>
+                                @if (source.IsActive)
+                                {
+                                    <span class="badge bg-success">Active</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-warning text-dark">Inactive</span>
+                                }
+                                @if (!string.IsNullOrEmpty(source.LastComparedDisplay))
+                                {
+                                    <br/>
+                                    <small class="text-muted">@source.LastComparedDisplay</small>
+                                }
+                            </td>
+                            <td class="text-nowrap">
+                                <a href="@Url.Action("Index", "Comparison")?sourceId=@source.Id" class="btn btn-sm btn-outline-primary" title="Compare">Compare</a>
+                                <a href="@Url.Action("Edit")/@source.Id" class="btn btn-sm btn-outline-secondary" title="Edit">Edit</a>
+                                <button class="btn btn-sm btn-outline-danger" onclick="deleteSource(@source.Id, '@source.Name.Replace("'", "\\'")' )" title="Delete">Del</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
     </div>
 </div>
@@ -29,107 +90,55 @@
 @section Scripts {
     <script>
         $(document).ready(function() {
-            $("#sourcesGrid").kendoGrid({
-                dataSource: {
-                    transport: {
-                        read: {
-                            url: "@Url.Action("GetSources", "EfModelSources")",
-                            type: "POST",
-                            dataType: "json"
-                        }
-                    },
-                    schema: {
-                        data: "data",
-                        total: "total"
-                    },
-                    pageSize: 25
-                },
-                pageable: {
-                    pageSizes: [10, 25, 50]
-                },
-                sortable: true,
-                filterable: true,
-                columns: [
-                    { field: "name", title: "Name", width: 200 },
-                    {
-                        field: "providerType",
-                        title: "Provider",
-                        width: 120,
-                        template: function(dataItem) {
-                            if (dataItem.providerType === 'DynamicDll') {
-                                return '<span class="badge bg-info">Dynamic DLL</span>';
-                            }
-                            return '<span class="badge bg-secondary">Direct</span>';
-                        }
-                    },
-                    { field: "targetDisplay", title: "Target Database", width: 200 },
-                    {
-                        field: "dbContextTypeName",
-                        title: "DbContext",
-                        width: 200,
-                        template: function(dataItem) {
-                            return dataItem.dbContextTypeName || '-';
-                        }
-                    },
-                    {
-                        field: "isActive",
-                        title: "Status",
-                        width: 100,
-                        template: function(dataItem) {
-                            if (dataItem.isActive) {
-                                return '<span class="badge bg-success">Active</span>';
-                            }
-                            return '<span class="badge bg-warning">Inactive</span>';
-                        }
-                    },
-                    { field: "lastComparedDisplay", title: "Last Compared", width: 150 },
-                    {
-                        title: "Actions",
-                        width: 280,
-                        template: function(dataItem) {
-                            return '<button class="btn btn-sm btn-outline-info me-1" onclick="validateSource(' + dataItem.id + ')">Validate</button>' +
-                                '<a href="@Url.Action("Index", "Comparison")?sourceId=' + dataItem.id + '" class="btn btn-sm btn-outline-primary me-1">Compare</a>' +
-                                '<a href="@Url.Action("Edit")/' + dataItem.id + '" class="btn btn-sm btn-outline-secondary me-1">Edit</a>' +
-                                '<button class="btn btn-sm btn-outline-danger" onclick="deleteSource(' + dataItem.id + ', \'' + dataItem.name.replace(/'/g, "\\'") + '\')">Delete</button>';
-                        }
-                    }
-                ]
+            $('#sourcesGrid').DataTable({
+                pageLength: 25,
+                lengthMenu: [[10, 25, 50], [10, 25, 50]],
+                order: [[0, 'asc']],
+                scrollX: true,
+                columnDefs: [
+                    { width: '35%', targets: 0 },  // Name
+                    { width: '25%', targets: 1 },  // Target
+                    { width: '15%', targets: 2 },  // Status
+                    { width: '25%', orderable: false, targets: 3 }  // Actions
+                ],
+                autoWidth: false
             });
         });
 
         function validateSource(id) {
-            kendo.ui.progress($("#sourcesGrid"), true);
+            DataTableHelpers.showProgress(true);
 
             $.post('@Url.Action("Validate")', { id: id })
                 .done(function(result) {
+                    DataTableHelpers.showProgress(false);
                     if (result.isValid) {
-                        kendo.alert("Validation successful: " + result.message);
+                        DataTableHelpers.alert("Validation successful: " + result.message, "Success");
                     } else {
-                        kendo.alert("Validation failed: " + result.errorMessage);
+                        DataTableHelpers.alert("Validation failed: " + result.errorMessage, "Error");
                     }
                 })
                 .fail(function() {
-                    kendo.alert("Error during validation");
-                })
-                .always(function() {
-                    kendo.ui.progress($("#sourcesGrid"), false);
+                    DataTableHelpers.showProgress(false);
+                    DataTableHelpers.alert("Error during validation", "Error");
                 });
         }
 
         function deleteSource(id, name) {
-            kendo.confirm("Are you sure you want to delete '" + name + "'?")
-                .done(function() {
-                    $.post('@Url.Action("Delete")', {
-                        id: id,
-                        __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
-                    })
-                    .done(function(result) {
-                        if (result.success) {
-                            $("#sourcesGrid").data("kendoGrid").dataSource.read();
-                        } else {
-                            kendo.alert("Delete failed: " + result.message);
-                        }
-                    });
+            DataTableHelpers.confirm("Are you sure you want to delete '" + name + "'?", "Delete Source")
+                .then(function(confirmed) {
+                    if (confirmed) {
+                        $.post('@Url.Action("Delete")', {
+                            id: id,
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        })
+                        .done(function(result) {
+                            if (result.success) {
+                                location.reload();
+                            } else {
+                                DataTableHelpers.alert("Delete failed: " + result.message, "Error");
+                            }
+                        });
+                    }
                 });
         }
     </script>

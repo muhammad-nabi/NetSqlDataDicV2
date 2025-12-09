@@ -16,7 +16,7 @@
         <div class="card-header d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Edit EF Model Source</h4>
             <div>
-                <span class="badge @(Model.IsActive ? "bg-success" : "bg-warning")">
+                <span class="badge @(Model.IsActive ? "bg-success" : "bg-warning text-dark")">
                     @(Model.IsActive ? "Active" : "Inactive")
                 </span>
             </div>
@@ -57,7 +57,7 @@
                             <div class="input-group">
                                 <input asp-for="AssemblyPath" class="form-control" />
                                 <button type="button" class="btn btn-outline-secondary" onclick="discoverDbContexts()">
-                                    <i class="fas fa-search"></i> Discover
+                                    Discover
                                 </button>
                             </div>
                         </div>
@@ -105,7 +105,7 @@
                     <a asp-action="Index" class="btn btn-secondary">Cancel</a>
                     <div>
                         <button type="button" class="btn btn-info" onclick="validateSource()">
-                            <i class="fas fa-check-circle"></i> Validate
+                            Validate
                         </button>
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                     </div>
@@ -126,11 +126,11 @@
         function discoverDbContexts() {
             var assemblyPath = $('#AssemblyPath').val();
             if (!assemblyPath) {
-                kendo.alert('Please enter an assembly path first.');
+                DataTableHelpers.alert('Please enter an assembly path first.');
                 return;
             }
 
-            kendo.ui.progress($('body'), true);
+            DataTableHelpers.showProgress(true);
 
             $.ajax({
                 url: '@Url.Action("DiscoverDbContexts")',
@@ -138,32 +138,36 @@
                 contentType: 'application/json',
                 data: JSON.stringify({ assemblyPath: assemblyPath }),
                 success: function(result) {
+                    DataTableHelpers.showProgress(false);
                     if (result.success && result.dbContexts.length > 0) {
                         var names = result.dbContexts.map(c => c.fullName).join('\n');
-                        kendo.alert('Found DbContexts:\n' + names);
+                        DataTableHelpers.alert('Found DbContexts:\n' + names);
                     } else {
-                        kendo.alert(result.message || 'No DbContext types found.');
+                        DataTableHelpers.alert(result.message || 'No DbContext types found.');
                     }
                 },
-                complete: function() {
-                    kendo.ui.progress($('body'), false);
+                error: function() {
+                    DataTableHelpers.showProgress(false);
+                    DataTableHelpers.alert('Error discovering DbContexts');
                 }
             });
         }
 
         function validateSource() {
-            kendo.ui.progress($('body'), true);
+            DataTableHelpers.showProgress(true);
 
             $.post('@Url.Action("Validate")', { id: @Model.Id })
                 .done(function(result) {
+                    DataTableHelpers.showProgress(false);
                     if (result.isValid) {
-                        kendo.alert('Validation successful: ' + result.message);
+                        DataTableHelpers.alert('Validation successful: ' + result.message, 'Success');
                     } else {
-                        kendo.alert('Validation failed: ' + result.errorMessage);
+                        DataTableHelpers.alert('Validation failed: ' + result.errorMessage, 'Error');
                     }
                 })
-                .always(function() {
-                    kendo.ui.progress($('body'), false);
+                .fail(function() {
+                    DataTableHelpers.showProgress(false);
+                    DataTableHelpers.alert('Error during validation', 'Error');
                 });
         }
 

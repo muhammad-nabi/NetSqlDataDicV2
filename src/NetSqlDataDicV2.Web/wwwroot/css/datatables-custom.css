@@ -1,0 +1,91 @@
+/* DataTables Bootstrap 5 customizations */
+.dt-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255,255,255,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+/* Status badges */
+.badge-match { background-color: #198754; }
+.badge-missing-ef { background-color: #dc3545; }
+.badge-missing-db { background-color: #ffc107; color: #000; }
+.badge-mismatch { background-color: #0dcaf0; color: #000; }
+
+/* Editable cells */
+.editable-cell {
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    min-width: 100px;
+}
+.editable-cell:hover {
+    background-color: #e9ecef;
+}
+.editable-cell.editing {
+    padding: 0;
+}
+.editable-cell input,
+.editable-cell textarea {
+    width: 100%;
+    padding: 4px 8px;
+    border: 1px solid #0d6efd;
+    border-radius: 4px;
+}
+
+/* Muted placeholder text in editable cells */
+.editable-cell em.text-muted {
+    font-style: italic;
+    color: #adb5bd !important;
+    font-size: 0.875em;
+}
+
+/* Action buttons - prevent wrapping */
+.text-nowrap {
+    white-space: nowrap;
+}
+
+/* Table improvements */
+#dataDictionaryGrid th,
+#dataDictionaryGrid td {
+    vertical-align: middle;
+    font-size: 0.875rem;
+}
+
+#dataDictionaryGrid {
+    table-layout: fixed;
+}
+
+/* Ensure table fits in container */
+.table-responsive {
+    overflow-x: auto;
+}
+
+/* Smaller compact rows */
+.table-sm td, .table-sm th {
+    padding: 0.4rem 0.5rem;
+}
+
+/* Primary key checkmark */
+.text-success {
+    font-weight: bold;
+}
+
+/* FK link icon */
+.text-info {
+    font-size: 0.75rem;
+}
+
+/* Truncate long text with ellipsis */
+#dataDictionaryGrid td {
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

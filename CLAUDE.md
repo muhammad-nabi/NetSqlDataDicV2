@@ -66,16 +66,17 @@ Razor Views + Kendo Grid → Controllers → Services → DataDictionaryDbContex
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| Telerik.UI.for.AspNet.Core | 2024.1.130 | Kendo UI grids |
 | Microsoft.EntityFrameworkCore.SqlServer | 9.0.0 | Database ORM |
 | Microsoft.Data.SqlClient | 5.2.2 | SQL Server connectivity |
+| DataTables.net | 1.13.7 (CDN) | Data grid tables |
+| Bootstrap | 5.3.2 (CDN) | UI framework |
 
-## Kendo UI License
+## Frontend Libraries
 
-The project uses Telerik Kendo UI which requires a license:
-1. Add your license key to `wwwroot/js/kendo-ui-license.js`
-2. Get your key from [Telerik Account](https://www.telerik.com/account/your-licenses)
-3. The license file is gitignored to protect your key
+The project uses CDN-hosted JavaScript libraries (no licensing required):
+- **jQuery 3.7.1** - DOM manipulation
+- **Bootstrap 5.3.2** - UI components and styling
+- **DataTables 1.13.7** - Grid tables with sorting, paging, filtering
 
 ## Sync Configuration
 
@@ -121,7 +122,7 @@ Ongoing effort to reduce complexity and remove licensing dependencies.
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | Complete | Remove Direct Reference provider & SourceModels project |
-| 2 | Pending | Replace Kendo UI with DataTables (free) |
+| 2 | Complete | Replace Kendo UI with DataTables (free) |
 | 3 | Pending | Cleanup navigation (remove Privacy page, simplify Home) |
 | 4 | Pending | Configuration cleanup & final polish |
 

@@ -16,8 +16,8 @@
             <div class="card-body">
                 <div class="mb-3">
                     <label class="form-label">EF Model Source</label>
-                    <select id="sourceSelector" class="form-select">
-                        <option value="">-- Direct Reference (Default) --</option>
+                    <select id="sourceSelector" class="form-select form-select-sm">
+                        <option value="">-- Select a Source --</option>
                         @foreach (var source in sources)
                         {
                             if (selectedSourceId == source.Id)
@@ -38,7 +38,7 @@
                     }
                 </div>
 
-                <dl class="row mb-3">
+                <dl class="row mb-3 small">
                     <dt class="col-sm-4">Server</dt>
                     <dd class="col-sm-8"><code id="displayServer">@ViewBag.SourceServer</code></dd>
 
@@ -48,12 +48,12 @@
 
                 @if (ViewBag.SourceName != null)
                 {
-                    <div class="alert alert-info mb-3">
+                    <div class="alert alert-info py-2 mb-3 small">
                         Using source: <strong>@ViewBag.SourceName</strong>
                     </div>
                 }
 
-                <button type="button" id="runComparison" class="btn btn-primary">
+                <button type="button" id="runComparison" class="btn btn-primary btn-sm">
                     <span class="spinner-border spinner-border-sm d-none" role="status"></span>
                     <span class="btn-text">Run Comparison</span>
                 </button>
@@ -91,34 +91,49 @@
 </div>
 
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">Comparison Results</h5>
-        <div>
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">All</button>
-                <button type="button" class="btn btn-outline-success filter-btn" data-filter="Match">Matches</button>
-                <button type="button" class="btn btn-outline-warning filter-btn" data-filter="MissingInEfModel">Missing in EF</button>
-                <button type="button" class="btn btn-outline-danger filter-btn" data-filter="MissingInDatabase">Missing in DB</button>
-                <button type="button" class="btn btn-outline-info filter-btn" data-filter="TypeMismatch">Mismatches</button>
-            </div>
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0">Comparison Results</h6>
+        <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">All</button>
+            <button type="button" class="btn btn-outline-success filter-btn" data-filter="Match">Match</button>
+            <button type="button" class="btn btn-outline-warning filter-btn" data-filter="MissingInEfModel">-EF</button>
+            <button type="button" class="btn btn-outline-danger filter-btn" data-filter="MissingInDatabase">-DB</button>
+            <button type="button" class="btn btn-outline-info filter-btn" data-filter="TypeMismatch">Mismatch</button>
         </div>
     </div>
     <div class="card-body p-0">
-        <div id="comparisonGrid"></div>
+        <div class="table-responsive">
+            <table id="comparisonGrid" class="table table-striped table-hover table-sm mb-0" style="width:100%">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Table</th>
+                        <th>Column</th>
+                        <th>DB Type</th>
+                        <th>EF Property</th>
+                        <th>CLR Type</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td colspan="6" class="text-center text-muted py-4">
+                            Select a source and click "Run Comparison" to see results
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 @section Scripts {
 <script>
     var comparisonData = [];
-    var grid = null;
+    var table = null;
     var defaultServer = "@ViewBag.SourceServer";
     var defaultDatabase = "@ViewBag.SourceDatabase";
 
     $(document).ready(function () {
-        // Initialize empty grid
-        initializeGrid([]);
-
         // Source selector change handler
         $("#sourceSelector").on("change", function() {
             var selected = $(this).find("option:selected");
@@ -138,24 +153,19 @@
             var $text = $btn.find(".btn-text");
             var sourceId = $("#sourceSelector").val();
 
+            if (!sourceId) {
+                DataTableHelpers.alert("Please select an EF Model Source");
+                return;
+            }
+
             $btn.prop("disabled", true);
             $spinner.removeClass("d-none");
             $text.text("Comparing...");
 
-            // Determine which endpoint to call
-            var url, data;
-            if (sourceId) {
-                url = "@Url.Action("CompareSource", "Comparison")";
-                data = { sourceId: sourceId };
-            } else {
-                url = "@Url.Action("Compare", "Comparison")";
-                data = {};
-            }
-
             $.ajax({
-                url: url,
+                url: "@Url.Action("CompareSource", "Comparison")",
                 type: "POST",
-                data: data,
+                data: { sourceId: sourceId },
                 success: function (result) {
                     if (result.success) {
                         // Update summary
@@ -165,15 +175,15 @@
                         $("#missingDbCount").text(result.totalMissingInDb);
                         $("#mismatchCount").text(result.totalTypeMismatches);
 
-                        // Store data and refresh grid
+                        // Store data and initialize/refresh grid
                         comparisonData = result.items;
-                        refreshGrid(comparisonData);
+                        initializeGrid(comparisonData);
                     } else {
-                        kendo.alert("Comparison failed: " + (result.error || "Unknown error"));
+                        DataTableHelpers.alert("Comparison failed: " + (result.error || "Unknown error"));
                     }
                 },
                 error: function (xhr, status, error) {
-                    kendo.alert("Error: " + error);
+                    DataTableHelpers.alert("Error: " + error);
                 },
                 complete: function () {
                     $btn.prop("disabled", false);
@@ -189,13 +199,16 @@
             $(this).addClass("active");
 
             var filter = $(this).data("filter");
-            if (filter === "all") {
-                refreshGrid(comparisonData);
-            } else {
-                var filtered = comparisonData.filter(function (item) {
-                    return item.status === getStatusValue(filter);
-                });
-                refreshGrid(filtered);
+            if (table) {
+                if (filter === "all") {
+                    table.clear().rows.add(comparisonData).draw();
+                } else {
+                    var statusValue = getStatusValue(filter);
+                    var filtered = comparisonData.filter(function (item) {
+                        return item.status === statusValue;
+                    });
+                    table.clear().rows.add(filtered).draw();
+                }
             }
         });
     });
@@ -211,112 +224,64 @@
     }
 
     function getStatusName(statusValue) {
-        var statusNames = ["Match", "Missing in EF Model", "Missing in Database", "Type Mismatch"];
+        var statusNames = ["Match", "Missing in EF", "Missing in DB", "Type Mismatch"];
         return statusNames[statusValue] || "Unknown";
     }
 
     function getStatusBadgeClass(statusValue) {
-        var classes = ["bg-success", "bg-warning", "bg-danger", "bg-info"];
+        var classes = ["bg-success", "bg-warning text-dark", "bg-danger", "bg-info text-dark"];
         return classes[statusValue] || "bg-secondary";
     }
 
     function initializeGrid(data) {
-        grid = $("#comparisonGrid").kendoGrid({
-            dataSource: {
-                data: data,
-                pageSize: 50
-            },
-            height: 550,
-            sortable: true,
-            filterable: {
-                mode: "row"
-            },
-            pageable: {
-                pageSizes: [25, 50, 100, "all"],
-                refresh: true
-            },
-            groupable: true,
-            resizable: true,
+        // Destroy existing table if it exists
+        if (table) {
+            table.destroy();
+        }
+
+        table = $('#comparisonGrid').DataTable({
+            data: data,
+            scrollX: true,
             columns: [
                 {
-                    field: "status",
-                    title: "Status",
-                    width: 150,
-                    template: function (dataItem) {
-                        return '<span class="badge ' + getStatusBadgeClass(dataItem.status) + '">' +
-                            getStatusName(dataItem.status) + '</span>';
-                    },
-                    filterable: {
-                        cell: {
-                            template: function (args) {
-                                args.element.kendoDropDownList({
-                                    dataSource: [
-                                        { text: "All", value: "" },
-                                        { text: "Match", value: 0 },
-                                        { text: "Missing in EF Model", value: 1 },
-                                        { text: "Missing in Database", value: 2 },
-                                        { text: "Type Mismatch", value: 3 }
-                                    ],
-                                    dataTextField: "text",
-                                    dataValueField: "value",
-                                    valuePrimitive: true
-                                });
-                            },
-                            showOperators: false
-                        }
+                    data: 'status',
+                    render: function(data) {
+                        return '<span class="badge ' + getStatusBadgeClass(data) + '" style="font-size:0.7rem">' + getStatusName(data) + '</span>';
                     }
                 },
                 {
-                    field: "schemaName",
-                    title: "Schema",
-                    width: 80
+                    data: 'tableName',
+                    render: function(data, type, row) {
+                        return '<span title="' + (row.schemaName || '') + '">' + (row.schemaName ? row.schemaName + '.' : '') + data + '</span>';
+                    }
                 },
+                { data: 'columnName' },
+                { data: 'databaseType', render: function(data) { return data || '-'; } },
                 {
-                    field: "tableName",
-                    title: "Table",
-                    width: 150,
-                    filterable: { cell: { operator: "contains" } }
+                    data: 'efPropertyName',
+                    render: function(data, type, row) {
+                        if (!data) return '-';
+                        return '<span title="Entity: ' + (row.efEntityName || '') + '">' + data + '</span>';
+                    }
                 },
-                {
-                    field: "columnName",
-                    title: "Column",
-                    width: 150,
-                    filterable: { cell: { operator: "contains" } }
-                },
-                {
-                    field: "databaseType",
-                    title: "DB Type",
-                    width: 120
-                },
-                {
-                    field: "efEntityName",
-                    title: "Entity",
-                    width: 150,
-                    filterable: { cell: { operator: "contains" } }
-                },
-                {
-                    field: "efPropertyName",
-                    title: "Property",
-                    width: 150
-                },
-                {
-                    field: "efClrType",
-                    title: "CLR Type",
-                    width: 100
-                },
-                {
-                    field: "notes",
-                    title: "Notes",
-                    width: 250
-                }
-            ]
-        }).data("kendoGrid");
-    }
-
-    function refreshGrid(data) {
-        if (grid) {
-            grid.dataSource.data(data);
-        }
+                { data: 'efClrType', render: function(data) { return data || '-'; } }
+            ],
+            columnDefs: [
+                { width: '90px', targets: 0 },   // Status
+                { width: '160px', targets: 1 },  // Table
+                { width: '130px', targets: 2 },  // Column
+                { width: '110px', targets: 3 },  // DB Type
+                { width: '130px', targets: 4 },  // EF Property
+                { width: '80px', targets: 5 }    // CLR Type
+            ],
+            autoWidth: false,
+            pageLength: 50,
+            lengthMenu: [[25, 50, 100, -1], [25, 50, 100, "All"]],
+            order: [[1, 'asc'], [2, 'asc']], // Sort by Table, then Column
+            language: {
+                emptyTable: "No comparison results to display"
+            }
+        });
     }
 </script>
 }
