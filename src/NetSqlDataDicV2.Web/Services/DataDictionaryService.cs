@@ -23,11 +23,21 @@ public class DataDictionaryService : IDataDictionaryService
         return _context.DataElements.AsNoTracking();
     }
 
+    public IQueryable<DataElement> GetDeletedQueryable()
+    {
+        return _context.DataElements
+            .IgnoreQueryFilters()
+            .Where(e => e.IsDeleted)
+            .AsNoTracking();
+    }
+
     public async Task<DataElementViewModel?> GetByIdAsync(
         int id,
         CancellationToken cancellationToken = default)
     {
+        // Use IgnoreQueryFilters to allow viewing details of deleted records
         var entity = await _context.DataElements
+            .IgnoreQueryFilters()
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.DataElementId == id, cancellationToken);
 
@@ -141,6 +151,47 @@ public class DataDictionaryService : IDataDictionaryService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<DataElementDetailsViewModel?> GetDetailsAsync(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        var element = await GetByIdAsync(id, cancellationToken);
+        if (element == null)
+        {
+            return null;
+        }
+
+        var auditHistory = await GetAuditHistoryAsync(id, cancellationToken);
+
+        return new DataElementDetailsViewModel
+        {
+            DataElement = element,
+            AuditHistory = auditHistory
+        };
+    }
+
+    public async Task<List<DataElementAuditViewModel>> GetAuditHistoryAsync(
+        int dataElementId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.DataElementAudits
+            .AsNoTracking()
+            .Where(a => a.DataElementId == dataElementId)
+            .OrderByDescending(a => a.ChangeTime)
+            .Select(a => new DataElementAuditViewModel
+            {
+                DataElementAuditId = a.DataElementAuditId,
+                DataElementId = a.DataElementId,
+                SyncHistoryId = a.SyncHistoryId,
+                ChangeType = a.ChangeType,
+                PropertyName = a.PropertyName,
+                OldValue = a.OldValue,
+                NewValue = a.NewValue,
+                ChangeTime = a.ChangeTime
+            })
+            .ToListAsync(cancellationToken);
+    }
+
     private static DataElementViewModel MapToViewModel(DataElement entity) => new()
     {
         DataElementId = entity.DataElementId,
@@ -163,6 +214,7 @@ public class DataDictionaryService : IDataDictionaryService
         MaxLength = entity.MaxLength,
         CreateTime = entity.CreateTime,
         LastUpdateTime = entity.LastUpdateTime,
-        LastSyncTime = entity.LastSyncTime
+        LastSyncTime = entity.LastSyncTime,
+        IsDeleted = entity.IsDeleted
     };
 }

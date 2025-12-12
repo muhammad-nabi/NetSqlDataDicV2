@@ -4,7 +4,7 @@
 
 A .NET 9 MVC application that creates and maintains a SQL Server data dictionary, enabling users to:
 - Sync database schema metadata into a persistent data dictionary
-- View and edit data dictionary entries via Kendo UI grids
+- View and edit data dictionary entries via DataTables grids
 - Compare the data dictionary against EF Core DB-First scaffolded models
 - Identify schema drift between database and application models
 
@@ -15,7 +15,7 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
 │                              User Interface                                  │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
 │  │ Data Dictionary │  │   Sync Page     │  │    Comparison Page          │  │
-│  │   Kendo Grid    │  │                 │  │                             │  │
+│  │  DataTables     │  │                 │  │                             │  │
 │  └────────┬────────┘  └────────┬────────┘  └─────────────┬───────────────┘  │
 └───────────┼────────────────────┼────────────────────────┼───────────────────┘
             │                    │                        │
@@ -51,6 +51,7 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
 │  - DataElements     │
 │  - SyncHistory      │
 │  - SourceConnections│
+│  - DataElementAudits│
 └─────────────────────┘
 ```
 
@@ -79,6 +80,7 @@ NetSqlDataDicV2/
 │       ├── Models/
 │       │   ├── Entities/
 │       │   │   ├── DataElement.cs
+│       │   │   ├── DataElementAudit.cs
 │       │   │   ├── SyncHistory.cs
 │       │   │   ├── SourceConnection.cs
 │       │   │   └── EfModelSource.cs
@@ -153,7 +155,26 @@ Stores metadata for each column in the source database.
 | LastSyncTime | DATETIME2 | Last sync from source |
 | IsDeleted | BIT | Soft delete flag |
 
-### 4.2 SyncHistory Table
+### 4.2 DataElementAudits Table
+Stores property-level change history for data elements during sync operations.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| DataElementAuditId | INT (PK) | Auto-increment primary key |
+| DataElementId | INT (FK) | Reference to DataElement |
+| SyncHistoryId | INT (FK) | Reference to SyncHistory |
+| ChangeType | NVARCHAR(20) | Added, Modified, Deleted, Restored |
+| PropertyName | NVARCHAR(50) | Name of changed property (null for Added/Deleted) |
+| OldValue | NVARCHAR(500) | Previous value |
+| NewValue | NVARCHAR(500) | New value |
+| ChangeTime | DATETIME2 | When the change occurred |
+
+**Indexes:**
+- IX_DataElementAudits_DataElementId
+- IX_DataElementAudits_SyncHistoryId
+- IX_DataElementAudits_ChangeTime
+
+### 4.3 SyncHistory Table
 Tracks synchronization operations.
 
 | Column | Type | Description |
@@ -171,7 +192,7 @@ Tracks synchronization operations.
 | Status | NVARCHAR(50) | Running, Completed, Failed |
 | ErrorMessage | NVARCHAR(MAX) | Error details if failed |
 
-### 4.3 SourceConnections Table
+### 4.4 SourceConnections Table
 Stores source database connection information.
 
 | Column | Type | Description |
@@ -189,14 +210,21 @@ Stores source database connection information.
 
 #### DataDictionaryService
 - CRUD operations for DataElement entities
-- Server-side paging, filtering, sorting for Kendo Grid
+- Server-side paging, filtering, sorting for DataTables
 - Inline update support for editable fields
+- Audit history retrieval for Details page
+- Deleted records query (bypasses global query filter)
 
 #### DatabaseSyncService
 - Connects to source SQL Server database
 - Queries sys.tables, sys.columns, sys.types, sys.foreign_key_columns
 - Performs MERGE-style upsert (insert new, update existing, soft-delete removed)
 - Tracks sync history
+- Creates audit records for all changes:
+  - `Added` - New column discovered
+  - `Modified` - Property-level changes (DataType, MaxLength, IsNullable, etc.)
+  - `Deleted` - Column no longer in source (soft delete)
+  - `Restored` - Previously deleted column reappears
 
 #### EfModelService
 - Reads EF Core model metadata from dynamically loaded DbContexts
@@ -300,8 +328,9 @@ ComparisonService.CompareAsync(sourceId)
 | Web Framework | ASP.NET Core MVC |
 | ORM | Entity Framework Core 9 |
 | Database | SQL Server (Docker) |
-| UI Grid | Telerik Kendo UI for ASP.NET Core 2024.1.130 |
-| CSS Framework | Bootstrap 5.3.2 |
+| UI Grid | DataTables 1.13.7 (CDN) |
+| CSS Framework | Bootstrap 5.3.2 (CDN) |
+| JavaScript | jQuery 3.7.1 (CDN) |
 
 ## 8. Configuration
 
@@ -336,11 +365,10 @@ EF model comparison sources are configured via the EfModelSources management UI,
 ## 10. Future Enhancements
 
 - Multi-database support (track multiple source databases)
-- Export to Excel/CSV
 - Schema comparison history
 - Automated sync scheduling
 - User authentication and role-based access
-- Audit logging for changes
+- Audit retention policies (auto-cleanup old records)
 
 ## 11. Implementation Status
 
@@ -367,8 +395,16 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | Phase | Description | Status |
 |-------|-------------|--------|
 | Simplify Phase 1 | Remove Direct Reference | Complete |
-| Simplify Phase 2 | Replace Kendo UI | Pending |
-| Simplify Phase 3 | Cleanup Navigation | Pending |
-| Simplify Phase 4 | Configuration Cleanup | Pending |
+| Simplify Phase 2 | Replace Kendo UI with DataTables | Complete |
+| Simplify Phase 3 | Cleanup Navigation | Complete |
+| Simplify Phase 4 | Configuration Cleanup | Complete |
+
+### Audit Trail Feature
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Audit Phase 1 | Data Layer (Entity, Configuration, Migration) | Complete |
+| Audit Phase 2 | Service Layer (Change Detection, Audit Records) | Complete |
+| Audit Phase 3 | ViewModel Layer (Audit History Queries) | Complete |
+| Audit Phase 4 | UI Layer (Details Page, Deleted View) | Complete |
 
 **Last Updated:** December 2024

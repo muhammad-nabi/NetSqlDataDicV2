@@ -63,6 +63,7 @@ public class DatabaseSyncService : IDatabaseSyncService
 
             int added = 0, updated = 0, removed = 0;
             var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var auditRecords = new List<DataElementAudit>();
 
             // Upsert discovered columns
             foreach (var col in sourceColumns)
@@ -72,21 +73,86 @@ public class DatabaseSyncService : IDatabaseSyncService
 
                 if (existingLookup.TryGetValue(key, out var existing))
                 {
-                    // Update existing
-                    var changed = UpdateDataElement(existing, col, serverName, databaseName);
-                    if (changed || existing.IsDeleted)
+                    var wasDeleted = existing.IsDeleted;
+                    var changes = UpdateDataElement(existing, col, serverName, databaseName);
+
+                    if (wasDeleted)
                     {
+                        // Column was soft-deleted, now restored
                         existing.IsDeleted = false;
                         existing.LastSyncTime = DateTime.UtcNow;
                         existing.LastUpdateTime = DateTime.UtcNow;
+
+                        auditRecords.Add(new DataElementAudit
+                        {
+                            DataElementId = existing.DataElementId,
+                            SyncHistoryId = syncHistory.SyncHistoryId,
+                            ChangeType = "Restored",
+                            PropertyName = null,
+                            OldValue = "Deleted",
+                            NewValue = "Active",
+                            ChangeTime = DateTime.UtcNow
+                        });
+
+                        // Also record any property changes during restoration
+                        foreach (var change in changes)
+                        {
+                            auditRecords.Add(new DataElementAudit
+                            {
+                                DataElementId = existing.DataElementId,
+                                SyncHistoryId = syncHistory.SyncHistoryId,
+                                ChangeType = "Modified",
+                                PropertyName = change.PropertyName,
+                                OldValue = change.OldValue,
+                                NewValue = change.NewValue,
+                                ChangeTime = DateTime.UtcNow
+                            });
+                        }
+
                         updated++;
                     }
+                    else if (changes.Count > 0)
+                    {
+                        // Properties changed
+                        existing.LastSyncTime = DateTime.UtcNow;
+                        existing.LastUpdateTime = DateTime.UtcNow;
+
+                        foreach (var change in changes)
+                        {
+                            auditRecords.Add(new DataElementAudit
+                            {
+                                DataElementId = existing.DataElementId,
+                                SyncHistoryId = syncHistory.SyncHistoryId,
+                                ChangeType = "Modified",
+                                PropertyName = change.PropertyName,
+                                OldValue = change.OldValue,
+                                NewValue = change.NewValue,
+                                ChangeTime = DateTime.UtcNow
+                            });
+                        }
+
+                        updated++;
+                    }
+                    // else: no changes, no audit record (requirement: skip if no change)
                 }
                 else
                 {
-                    // Add new
+                    // Add new column
                     var newElement = CreateDataElement(col, serverName, databaseName);
                     _context.DataElements.Add(newElement);
+
+                    // Create audit record using navigation property (ID assigned after SaveChanges)
+                    auditRecords.Add(new DataElementAudit
+                    {
+                        DataElement = newElement,
+                        SyncHistoryId = syncHistory.SyncHistoryId,
+                        ChangeType = "Added",
+                        PropertyName = null,
+                        OldValue = null,
+                        NewValue = FormatDataType(col),
+                        ChangeTime = DateTime.UtcNow
+                    });
+
                     added++;
                 }
             }
@@ -99,9 +165,24 @@ public class DatabaseSyncService : IDatabaseSyncService
                 {
                     existing.IsDeleted = true;
                     existing.LastUpdateTime = DateTime.UtcNow;
+
+                    auditRecords.Add(new DataElementAudit
+                    {
+                        DataElementId = existing.DataElementId,
+                        SyncHistoryId = syncHistory.SyncHistoryId,
+                        ChangeType = "Deleted",
+                        PropertyName = null,
+                        OldValue = "Active",
+                        NewValue = "Deleted",
+                        ChangeTime = DateTime.UtcNow
+                    });
+
                     removed++;
                 }
             }
+
+            // Add all audit records
+            _context.DataElementAudits.AddRange(auditRecords);
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -276,20 +357,89 @@ public class DatabaseSyncService : IDatabaseSyncService
         };
     }
 
-    private static bool UpdateDataElement(DataElement existing, SourceColumnDto col, string serverName, string databaseName)
+    private static List<PropertyChange> UpdateDataElement(DataElement existing, SourceColumnDto col, string serverName, string databaseName)
     {
-        bool changed = false;
+        var changes = new List<PropertyChange>();
 
         var newDataType = FormatDataType(col);
-        if (existing.DataType != newDataType) { existing.DataType = newDataType; changed = true; }
-        if (existing.MaxLength != col.MaxLength) { existing.MaxLength = col.MaxLength; changed = true; }
-        if (existing.Precision != col.Precision) { existing.Precision = col.Precision; changed = true; }
-        if (existing.Scale != col.Scale) { existing.Scale = col.Scale; changed = true; }
-        if (existing.IsNullable != col.IsNullable) { existing.IsNullable = col.IsNullable; changed = true; }
-        if (existing.IsPrimaryKey != col.IsPrimaryKey) { existing.IsPrimaryKey = col.IsPrimaryKey; changed = true; }
-        if (existing.ForeignKeyTo != col.ForeignKeyTo) { existing.ForeignKeyTo = col.ForeignKeyTo; changed = true; }
+        if (existing.DataType != newDataType)
+        {
+            changes.Add(new PropertyChange
+            {
+                PropertyName = nameof(DataElement.DataType),
+                OldValue = existing.DataType,
+                NewValue = newDataType
+            });
+            existing.DataType = newDataType;
+        }
 
-        return changed;
+        if (existing.MaxLength != col.MaxLength)
+        {
+            changes.Add(new PropertyChange
+            {
+                PropertyName = nameof(DataElement.MaxLength),
+                OldValue = existing.MaxLength?.ToString(),
+                NewValue = col.MaxLength?.ToString()
+            });
+            existing.MaxLength = col.MaxLength;
+        }
+
+        if (existing.Precision != col.Precision)
+        {
+            changes.Add(new PropertyChange
+            {
+                PropertyName = nameof(DataElement.Precision),
+                OldValue = existing.Precision?.ToString(),
+                NewValue = col.Precision?.ToString()
+            });
+            existing.Precision = col.Precision;
+        }
+
+        if (existing.Scale != col.Scale)
+        {
+            changes.Add(new PropertyChange
+            {
+                PropertyName = nameof(DataElement.Scale),
+                OldValue = existing.Scale?.ToString(),
+                NewValue = col.Scale?.ToString()
+            });
+            existing.Scale = col.Scale;
+        }
+
+        if (existing.IsNullable != col.IsNullable)
+        {
+            changes.Add(new PropertyChange
+            {
+                PropertyName = nameof(DataElement.IsNullable),
+                OldValue = existing.IsNullable.ToString(),
+                NewValue = col.IsNullable.ToString()
+            });
+            existing.IsNullable = col.IsNullable;
+        }
+
+        if (existing.IsPrimaryKey != col.IsPrimaryKey)
+        {
+            changes.Add(new PropertyChange
+            {
+                PropertyName = nameof(DataElement.IsPrimaryKey),
+                OldValue = existing.IsPrimaryKey.ToString(),
+                NewValue = col.IsPrimaryKey.ToString()
+            });
+            existing.IsPrimaryKey = col.IsPrimaryKey;
+        }
+
+        if (existing.ForeignKeyTo != col.ForeignKeyTo)
+        {
+            changes.Add(new PropertyChange
+            {
+                PropertyName = nameof(DataElement.ForeignKeyTo),
+                OldValue = existing.ForeignKeyTo,
+                NewValue = col.ForeignKeyTo
+            });
+            existing.ForeignKeyTo = col.ForeignKeyTo;
+        }
+
+        return changes;
     }
 
     private static string FormatDataType(SourceColumnDto col)

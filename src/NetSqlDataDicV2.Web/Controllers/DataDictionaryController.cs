@@ -127,6 +127,93 @@ public class DataDictionaryController : Controller
     }
 
     [HttpGet]
+    public async Task<IActionResult> Details(int id, CancellationToken cancellationToken)
+    {
+        var model = await _service.GetDetailsAsync(id, cancellationToken);
+
+        if (model == null)
+        {
+            return NotFound();
+        }
+
+        return View(model);
+    }
+
+    public IActionResult Deleted()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> ReadDeleted([FromBody] PaginationRequest request, CancellationToken ct)
+    {
+        try
+        {
+            var query = _service.GetDeletedQueryable()
+                .Select(e => new DataElementViewModel
+                {
+                    DataElementId = e.DataElementId,
+                    DataElementName = e.DataElementName,
+                    DataElementType = e.DataElementType,
+                    DataType = e.DataType,
+                    DataPurpose = e.DataPurpose,
+                    EntityPurpose = e.EntityPurpose,
+                    DatabaseServer = e.DatabaseServer,
+                    DatabaseName = e.DatabaseName,
+                    SchemaName = e.SchemaName,
+                    TableName = e.TableName,
+                    ColumnName = e.ColumnName,
+                    OriginalDataSource = e.OriginalDataSource,
+                    Notes = e.Notes,
+                    ForeignKeyTo = e.ForeignKeyTo,
+                    RowCount = e.RowCount,
+                    IsNullable = e.IsNullable,
+                    IsPrimaryKey = e.IsPrimaryKey,
+                    MaxLength = e.MaxLength,
+                    CreateTime = e.CreateTime,
+                    LastUpdateTime = e.LastUpdateTime,
+                    LastSyncTime = e.LastSyncTime,
+                    IsDeleted = e.IsDeleted
+                });
+
+            // Apply filters
+            if (request.Filters != null)
+            {
+                if (request.Filters.TryGetValue("server", out var serverFilter) && !string.IsNullOrEmpty(serverFilter))
+                {
+                    query = query.Where(e => e.DatabaseServer == serverFilter);
+                }
+                if (request.Filters.TryGetValue("database", out var databaseFilter) && !string.IsNullOrEmpty(databaseFilter))
+                {
+                    query = query.Where(e => e.DatabaseName == databaseFilter);
+                }
+            }
+
+            // Apply search
+            if (!string.IsNullOrEmpty(request.SearchTerm))
+            {
+                var term = request.SearchTerm.ToLower();
+                query = query.Where(e =>
+                    (e.ColumnName != null && e.ColumnName.ToLower().Contains(term)) ||
+                    (e.TableName != null && e.TableName.ToLower().Contains(term)));
+            }
+
+            // Apply sorting - default to LastUpdateTime (deleted date) descending
+            query = ApplySorting(query, request.SortField ?? "lastupdatetime", request.SortDirection ?? "desc");
+
+            var total = await query.CountAsync(ct);
+            var data = await query.Skip(request.Skip).Take(request.PageSize).ToListAsync(ct);
+
+            return Json(PaginationResponse<DataElementViewModel>.Create(data, total, request));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reading deleted data elements");
+            return StatusCode(500, new { error = "An error occurred while loading data" });
+        }
+    }
+
+    [HttpGet]
     public async Task<IActionResult> GetDatabases(string server)
     {
         var databases = await _service.GetDistinctDatabasesAsync(server);
@@ -180,6 +267,7 @@ public class DataDictionaryController : Controller
             "isprimarykey" => isDesc ? query.OrderByDescending(e => e.IsPrimaryKey) : query.OrderBy(e => e.IsPrimaryKey),
             "datapurpose" => isDesc ? query.OrderByDescending(e => e.DataPurpose) : query.OrderBy(e => e.DataPurpose),
             "notes" => isDesc ? query.OrderByDescending(e => e.Notes) : query.OrderBy(e => e.Notes),
+            "lastupdatetime" => isDesc ? query.OrderByDescending(e => e.LastUpdateTime) : query.OrderBy(e => e.LastUpdateTime),
             _ => query.OrderBy(e => e.TableName).ThenBy(e => e.ColumnName)
         };
     }

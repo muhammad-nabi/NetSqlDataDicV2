@@ -14,6 +14,7 @@ public class DataDictionaryDbContext : DbContext
     public DbSet<SyncHistory> SyncHistory => Set<SyncHistory>();
     public DbSet<SourceConnection> SourceConnections => Set<SourceConnection>();
     public DbSet<EfModelSource> EfModelSources => Set<EfModelSource>();
+    public DbSet<DataElementAudit> DataElementAudits => Set<DataElementAudit>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

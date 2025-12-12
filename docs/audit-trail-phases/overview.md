@@ -32,10 +32,10 @@ The existing sync system (`DatabaseSyncService.SyncDatabaseAsync`) already:
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Data Layer - Entity, Configuration, Migration | Pending |
-| 2 | Service Layer - Sync modifications, audit queries | Pending |
-| 3 | ViewModel Layer - DTOs and ViewModels | Pending |
-| 4 | UI Layer - Controller actions and Views | Pending |
+| 1 | Data Layer - Entity, Configuration, Migration | Complete |
+| 2 | Service Layer - Sync modifications, audit queries | Complete |
+| 3 | ViewModel Layer - DTOs and ViewModels | Complete |
+| 4 | UI Layer - Controller actions and Views | Complete |
 
 ## Files Summary
 
@@ -47,10 +47,15 @@ The existing sync system (`DatabaseSyncService.SyncDatabaseAsync`) already:
 - `Models/ViewModels/DataElementDetailsViewModel.cs`
 - `Views/DataDictionary/Details.cshtml`
 
-### Modified Files (6)
+### Modified Files (8)
 - `Data/DataDictionaryDbContext.cs`
 - `Services/DatabaseSyncService.cs`
 - `Services/IDataDictionaryService.cs`
 - `Services/DataDictionaryService.cs`
 - `Controllers/DataDictionaryController.cs`
 - `Views/DataDictionary/Index.cshtml`
+- `Views/Shared/_Layout.cshtml` (added Deleted nav link)
+- `Models/ViewModels/DataElementViewModel.cs` (added IsDeleted property)
+
+### Additional Features (added during implementation)
+- `Views/DataDictionary/Deleted.cshtml` - Separate view for soft-deleted columns

@@ -1,5 +1,6 @@
 @{
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -33,7 +34,10 @@
                             <a class="nav-link @(controller == "Home" ? "active" : "")" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link @(controller == "DataDictionary" ? "active" : "")" asp-controller="DataDictionary" asp-action="Index">Dictionary</a>
+                            <a class="nav-link @(controller == "DataDictionary" && action != "Deleted" ? "active" : "")" asp-controller="DataDictionary" asp-action="Index">Dictionary</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(controller == "DataDictionary" && action == "Deleted" ? "active" : "")" asp-controller="DataDictionary" asp-action="Deleted">Deleted</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link @(controller == "Sync" ? "active" : "")" asp-controller="Sync" asp-action="Index">Sync</a>

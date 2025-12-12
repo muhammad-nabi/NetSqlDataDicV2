@@ -45,6 +45,7 @@ Razor Views + DataTables → Controllers → Services → DataDictionaryDbContex
 
 **Key Entities:**
 - `DataElement` - Database column metadata (soft delete enabled via `IsDeleted` flag)
+- `DataElementAudit` - Audit trail for schema changes during sync operations
 - `SyncHistory` - Tracks sync operations
 - `SourceConnection` - Source database connection info
 - `EfModelSource` - Configured EF Model sources for dynamic DLL loading
@@ -127,6 +128,31 @@ Ongoing effort to reduce complexity and remove licensing dependencies.
 | 4 | Complete | Configuration cleanup & final polish |
 
 Detailed specs in `docs/simplification-phases/`.
+
+## Audit Trail Feature
+
+Tracks property-level changes to database columns during sync operations.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Data layer (DataElementAudit entity, configuration, migration) |
+| 2 | Complete | Service layer (change detection, audit record creation) |
+| 3 | Complete | ViewModel layer (audit history queries, display models) |
+| 4 | Complete | UI layer (Details page, Deleted columns view) |
+
+**Change Types Tracked:**
+- `Added` - New column discovered during sync
+- `Modified` - Property changed (DataType, MaxLength, IsNullable, etc.)
+- `Deleted` - Column removed from source database (soft delete)
+- `Restored` - Previously deleted column reappears
+
+**Key Features:**
+- Property-level tracking (e.g., "DataType: VARCHAR(50) → VARCHAR(100)")
+- No audit record created if nothing changed during sync
+- Details page accessible from Dictionary grid shows current state + audit history
+- Separate "Deleted Columns" view for soft-deleted records
+
+Detailed specs in `docs/audit-trail-phases/`.
 
 ## Security Configuration
 

@@ -23,6 +23,7 @@ public class DataElementViewModel
     public DateTime CreateTime { get; set; }
     public DateTime LastUpdateTime { get; set; }
     public DateTime? LastSyncTime { get; set; }
+    public bool IsDeleted { get; set; }
 
     // Computed display properties
     public string FullyQualifiedName =>

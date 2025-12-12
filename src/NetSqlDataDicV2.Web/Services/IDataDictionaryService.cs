@@ -13,4 +13,7 @@ public interface IDataDictionaryService
     Task<List<string>> GetDistinctServersAsync(CancellationToken cancellationToken = default);
     Task<List<string>> GetDistinctDatabasesAsync(string? server = null, CancellationToken cancellationToken = default);
     Task<List<string>> GetDistinctTablesAsync(string? server = null, string? database = null, CancellationToken cancellationToken = default);
+    Task<DataElementDetailsViewModel?> GetDetailsAsync(int id, CancellationToken cancellationToken = default);
+    Task<List<DataElementAuditViewModel>> GetAuditHistoryAsync(int dataElementId, CancellationToken cancellationToken = default);
+    IQueryable<DataElement> GetDeletedQueryable();
 }
