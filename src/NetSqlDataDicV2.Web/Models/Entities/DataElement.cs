@@ -32,4 +32,7 @@ public class DataElement
     public DateTime LastUpdateTime { get; set; } = DateTime.UtcNow;
     public DateTime? LastSyncTime { get; set; }
     public bool IsDeleted { get; set; }
+
+    // Navigation property for notes
+    public ICollection<DataElementNote> DataElementNotes { get; set; } = new List<DataElementNote>();
 }

@@ -131,9 +131,16 @@ $(document).ready(function() {
                 render: function(data) { return data || '<em class="text-muted">-</em>'; }
             },
             {
-                data: 'notes',
-                className: 'editable-cell',
-                render: function(data) { return data || '<em class="text-muted">-</em>'; }
+                data: 'noteCount',
+                className: 'text-center',
+                render: function(data, type, row) {
+                    if (data > 0) {
+                        return '<a href="@Url.Action("Details", "DataDictionary")/' + row.dataElementId + '" ' +
+                               'class="badge bg-info text-decoration-none" title="View ' + data + ' note(s)">' +
+                               data + '</a>';
+                    }
+                    return '<span class="text-muted">-</span>';
+                }
             },
             {
                 data: 'dataElementId',
@@ -152,7 +159,7 @@ $(document).ready(function() {
             { width: '40px', targets: 3 },   // Null
             { width: '35px', targets: 4 },   // PK
             { width: '150px', targets: 5 },  // Purpose
-            { width: '150px', targets: 6 },  // Notes
+            { width: '60px', targets: 6 },   // Notes count
             { width: '100px', targets: 7 }   // Actions
         ],
         pageLength: 50,

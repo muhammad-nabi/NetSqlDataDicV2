@@ -163,10 +163,13 @@ public class DataDictionaryService : IDataDictionaryService
 
         var auditHistory = await GetAuditHistoryAsync(id, cancellationToken);
 
+        var notes = await GetNotesAsync(id, cancellationToken);
+
         return new DataElementDetailsViewModel
         {
             DataElement = element,
-            AuditHistory = auditHistory
+            AuditHistory = auditHistory,
+            Notes = notes
         };
     }
 
@@ -188,6 +191,59 @@ public class DataDictionaryService : IDataDictionaryService
                 OldValue = a.OldValue,
                 NewValue = a.NewValue,
                 ChangeTime = a.ChangeTime
+            })
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<DataElementNoteViewModel> AddNoteAsync(
+        int dataElementId,
+        string noteText,
+        CancellationToken cancellationToken = default)
+    {
+        // Verify DataElement exists (allow notes on deleted columns too)
+        var exists = await _context.DataElements
+            .IgnoreQueryFilters()
+            .AnyAsync(e => e.DataElementId == dataElementId, cancellationToken);
+
+        if (!exists)
+            throw new InvalidOperationException($"DataElement {dataElementId} not found");
+
+        var note = new DataElementNote
+        {
+            DataElementId = dataElementId,
+            NoteText = noteText.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.DataElementNotes.Add(note);
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation("Added note {NoteId} to DataElement {ElementId}",
+            note.DataElementNoteId, dataElementId);
+
+        return new DataElementNoteViewModel
+        {
+            DataElementNoteId = note.DataElementNoteId,
+            DataElementId = note.DataElementId,
+            NoteText = note.NoteText,
+            CreatedAt = note.CreatedAt
+        };
+    }
+
+    public async Task<List<DataElementNoteViewModel>> GetNotesAsync(
+        int dataElementId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _context.DataElementNotes
+            .AsNoTracking()
+            .Where(n => n.DataElementId == dataElementId)
+            .OrderByDescending(n => n.CreatedAt)
+            .Select(n => new DataElementNoteViewModel
+            {
+                DataElementNoteId = n.DataElementNoteId,
+                DataElementId = n.DataElementId,
+                NoteText = n.NoteText,
+                CreatedAt = n.CreatedAt
             })
             .ToListAsync(cancellationToken);
     }

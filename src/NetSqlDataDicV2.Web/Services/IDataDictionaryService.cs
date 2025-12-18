@@ -16,4 +16,8 @@ public interface IDataDictionaryService
     Task<DataElementDetailsViewModel?> GetDetailsAsync(int id, CancellationToken cancellationToken = default);
     Task<List<DataElementAuditViewModel>> GetAuditHistoryAsync(int dataElementId, CancellationToken cancellationToken = default);
     IQueryable<DataElement> GetDeletedQueryable();
+
+    // Note operations
+    Task<DataElementNoteViewModel> AddNoteAsync(int dataElementId, string noteText, CancellationToken cancellationToken = default);
+    Task<List<DataElementNoteViewModel>> GetNotesAsync(int dataElementId, CancellationToken cancellationToken = default);
 }

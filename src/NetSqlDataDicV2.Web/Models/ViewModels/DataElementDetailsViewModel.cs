@@ -13,6 +13,21 @@ public class DataElementDetailsViewModel
     public List<DataElementAuditViewModel> AuditHistory { get; set; } = new();
 
     /// <summary>
+    /// User notes ordered by most recent first
+    /// </summary>
+    public List<DataElementNoteViewModel> Notes { get; set; } = new();
+
+    /// <summary>
+    /// Count of user notes
+    /// </summary>
+    public int NoteCount => Notes.Count;
+
+    /// <summary>
+    /// Most recent note timestamp
+    /// </summary>
+    public DateTime? LastNoteDate => Notes.FirstOrDefault()?.CreatedAt;
+
+    /// <summary>
     /// Total number of changes recorded
     /// </summary>
     public int TotalChanges => AuditHistory.Count;

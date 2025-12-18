@@ -46,6 +46,7 @@ Razor Views + DataTables → Controllers → Services → DataDictionaryDbContex
 **Key Entities:**
 - `DataElement` - Database column metadata (soft delete enabled via `IsDeleted` flag)
 - `DataElementAudit` - Audit trail for schema changes during sync operations
+- `DataElementNote` - User notes for data elements (append-only, timestamped)
 - `SyncHistory` - Tracks sync operations
 - `SourceConnection` - Source database connection info
 - `EfModelSource` - Configured EF Model sources for dynamic DLL loading
@@ -153,6 +154,26 @@ Tracks property-level changes to database columns during sync operations.
 - Separate "Deleted Columns" view for soft-deleted records
 
 Detailed specs in `docs/audit-trail-phases/`.
+
+## Notes Feature
+
+Allows multiple timestamped notes per DataElement (database column).
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Data layer (DataElementNote entity, configuration, migration) |
+| 2 | Complete | Service layer (ViewModels, service methods) |
+| 3 | Complete | UI layer (Details page notes card, Add Note modal) |
+| 4 | Complete | Cleanup (grid note count, documentation) |
+
+**Key Features:**
+- Append-only notes - maintains full history
+- Notes displayed newest-first on Details page
+- Grid shows note count badge linking to Details
+- 2000 character limit per note
+- Migrated existing Notes data from legacy single-value field
+
+Detailed specs in `docs/notes-feature-phases/`.
 
 ## Security Configuration
 

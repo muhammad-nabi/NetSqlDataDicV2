@@ -55,7 +55,8 @@ public class DataDictionaryController : Controller
                     MaxLength = e.MaxLength,
                     CreateTime = e.CreateTime,
                     LastUpdateTime = e.LastUpdateTime,
-                    LastSyncTime = e.LastSyncTime
+                    LastSyncTime = e.LastSyncTime,
+                    NoteCount = e.DataElementNotes.Count
                 });
 
             // Apply filters
@@ -137,6 +138,41 @@ public class DataDictionaryController : Controller
         }
 
         return View(model);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> AddNote([FromBody] AddNoteViewModel model, CancellationToken ct)
+    {
+        if (!ModelState.IsValid)
+        {
+            var errors = ModelState.Values
+                .SelectMany(v => v.Errors.Select(e => e.ErrorMessage))
+                .ToList();
+            return Json(new { success = false, errors });
+        }
+
+        try
+        {
+            var note = await _service.AddNoteAsync(model.DataElementId, model.NoteText, ct);
+            return Json(new { success = true, data = note });
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Failed to add note - DataElement not found");
+            return Json(new { success = false, errors = new[] { ex.Message } });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error adding note to DataElement {Id}", model.DataElementId);
+            return Json(new { success = false, errors = new[] { "Failed to add note. Please try again." } });
+        }
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GetNotes(int id, CancellationToken ct)
+    {
+        var notes = await _service.GetNotesAsync(id, ct);
+        return Json(notes);
     }
 
     public IActionResult Deleted()
@@ -266,7 +302,7 @@ public class DataDictionaryController : Controller
             "isnullable" => isDesc ? query.OrderByDescending(e => e.IsNullable) : query.OrderBy(e => e.IsNullable),
             "isprimarykey" => isDesc ? query.OrderByDescending(e => e.IsPrimaryKey) : query.OrderBy(e => e.IsPrimaryKey),
             "datapurpose" => isDesc ? query.OrderByDescending(e => e.DataPurpose) : query.OrderBy(e => e.DataPurpose),
-            "notes" => isDesc ? query.OrderByDescending(e => e.Notes) : query.OrderBy(e => e.Notes),
+            "notecount" => isDesc ? query.OrderByDescending(e => e.NoteCount) : query.OrderBy(e => e.NoteCount),
             "lastupdatetime" => isDesc ? query.OrderByDescending(e => e.LastUpdateTime) : query.OrderBy(e => e.LastUpdateTime),
             _ => query.OrderBy(e => e.TableName).ThenBy(e => e.ColumnName)
         };

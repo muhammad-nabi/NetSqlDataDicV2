@@ -52,6 +52,7 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
 │  - SyncHistory      │
 │  - SourceConnections│
 │  - DataElementAudits│
+│  - DataElementNotes │
 └─────────────────────┘
 ```
 
@@ -68,7 +69,9 @@ NetSqlDataDicV2/
 │   ├── phase4-ef-comparison.md
 │   ├── phase5-polish.md
 │   ├── dll-loading-phases/          # DLL loading feature specs
-│   └── simplification-phases/       # Simplification project specs
+│   ├── simplification-phases/       # Simplification project specs
+│   ├── audit-trail-phases/          # Audit trail feature specs
+│   └── notes-feature-phases/        # Notes feature specs
 ├── src/
 │   └── NetSqlDataDicV2.Web/         # Main MVC Application
 │       ├── Controllers/
@@ -81,6 +84,7 @@ NetSqlDataDicV2/
 │       │   ├── Entities/
 │       │   │   ├── DataElement.cs
 │       │   │   ├── DataElementAudit.cs
+│       │   │   ├── DataElementNote.cs
 │       │   │   ├── SyncHistory.cs
 │       │   │   ├── SourceConnection.cs
 │       │   │   └── EfModelSource.cs
@@ -174,7 +178,21 @@ Stores property-level change history for data elements during sync operations.
 - IX_DataElementAudits_SyncHistoryId
 - IX_DataElementAudits_ChangeTime
 
-### 4.3 SyncHistory Table
+### 4.3 DataElementNotes Table
+Stores user-added notes for data elements (append-only).
+
+| Column | Type | Description |
+|--------|------|-------------|
+| DataElementNoteId | INT (PK) | Auto-increment primary key |
+| DataElementId | INT (FK) | Reference to DataElement |
+| NoteText | NVARCHAR(2000) | Note content |
+| CreatedAt | DATETIME2 | When the note was created |
+
+**Indexes:**
+- IX_DataElementNotes_DataElementId
+- IX_DataElementNotes_CreatedAt
+
+### 4.5 SyncHistory Table
 Tracks synchronization operations.
 
 | Column | Type | Description |
@@ -192,7 +210,7 @@ Tracks synchronization operations.
 | Status | NVARCHAR(50) | Running, Completed, Failed |
 | ErrorMessage | NVARCHAR(MAX) | Error details if failed |
 
-### 4.4 SourceConnections Table
+### 4.6 SourceConnections Table
 Stores source database connection information.
 
 | Column | Type | Description |
@@ -214,6 +232,7 @@ Stores source database connection information.
 - Inline update support for editable fields
 - Audit history retrieval for Details page
 - Deleted records query (bypasses global query filter)
+- Notes management (add, retrieve notes for elements)
 
 #### DatabaseSyncService
 - Connects to source SQL Server database
@@ -406,5 +425,13 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | Audit Phase 2 | Service Layer (Change Detection, Audit Records) | Complete |
 | Audit Phase 3 | ViewModel Layer (Audit History Queries) | Complete |
 | Audit Phase 4 | UI Layer (Details Page, Deleted View) | Complete |
+
+### Notes Feature
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Notes Phase 1 | Data Layer (Entity, Configuration, Migration) | Complete |
+| Notes Phase 2 | Service Layer (ViewModels, Service Methods) | Complete |
+| Notes Phase 3 | UI Layer (Details Page Notes Card, Add Modal) | Complete |
+| Notes Phase 4 | Cleanup (Grid Note Count, Documentation) | Complete |
 
 **Last Updated:** December 2024

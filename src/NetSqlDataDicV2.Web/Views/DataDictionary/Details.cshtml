@@ -132,6 +132,43 @@
     </div>
 </div>
 
+<!-- Notes Card -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <strong>Notes</strong>
+        <div>
+            <span class="badge bg-secondary me-2">@Model.NoteCount note(s)</span>
+            <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal"
+                    data-bs-target="#addNoteModal">
+                Add Note
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Notes.Any())
+        {
+            <div class="list-group list-group-flush" id="notesList">
+                @foreach (var note in Model.Notes)
+                {
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <small class="text-muted">@note.FormattedDate</small>
+                            <small class="text-muted">@note.RelativeTime</small>
+                        </div>
+                        <p class="mb-0" style="white-space: pre-wrap;">@note.NoteText</p>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="p-4 text-center text-muted" id="noNotesMessage">
+                <em>No notes yet. Click "Add Note" to add the first note.</em>
+            </div>
+        }
+    </div>
+</div>
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <strong>Change History</strong>
@@ -195,9 +232,40 @@
     </div>
 </div>
 
+<!-- Add Note Modal -->
+<div class="modal fade" id="addNoteModal" tabindex="-1" aria-labelledby="addNoteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addNoteModalLabel">Add Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addNoteForm">
+                    <input type="hidden" id="noteDataElementId" value="@Model.DataElement.DataElementId" />
+                    <div class="mb-3">
+                        <label for="noteText" class="form-label">Note</label>
+                        <textarea id="noteText" class="form-control" rows="4"
+                                  maxlength="2000" required
+                                  placeholder="Enter your note here..."></textarea>
+                        <div class="form-text">
+                            <span id="charCount">0</span>/2000 characters
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="saveNoteBtn">Add Note</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script>
         $(document).ready(function () {
+            // Initialize audit history DataTable
             if ($('#auditHistoryGrid tbody tr').length > 0) {
                 $('#auditHistoryGrid').DataTable({
                     pageLength: 25,
@@ -214,6 +282,53 @@
                     ]
                 });
             }
+
+            // Character counter for note text
+            $('#noteText').on('input', function() {
+                $('#charCount').text($(this).val().length);
+            });
+
+            // Save note
+            $('#saveNoteBtn').on('click', function() {
+                var noteText = $('#noteText').val().trim();
+                if (!noteText) {
+                    alert('Please enter a note.');
+                    return;
+                }
+
+                var btn = $(this);
+                btn.prop('disabled', true).text('Saving...');
+
+                $.ajax({
+                    url: '@Url.Action("AddNote")',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        dataElementId: parseInt($('#noteDataElementId').val()),
+                        noteText: noteText
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            // Reload page to show new note
+                            location.reload();
+                        } else {
+                            alert('Error: ' + (response.errors ? response.errors.join(', ') : 'Failed to add note'));
+                        }
+                    },
+                    error: function() {
+                        alert('Failed to add note. Please try again.');
+                    },
+                    complete: function() {
+                        btn.prop('disabled', false).text('Add Note');
+                    }
+                });
+            });
+
+            // Reset form when modal closes
+            $('#addNoteModal').on('hidden.bs.modal', function() {
+                $('#noteText').val('');
+                $('#charCount').text('0');
+            });
         });
     </script>
 }

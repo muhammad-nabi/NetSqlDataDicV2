@@ -25,6 +25,9 @@ public class DataElementViewModel
     public DateTime? LastSyncTime { get; set; }
     public bool IsDeleted { get; set; }
 
+    // Note count (populated from DataElementNotes)
+    public int NoteCount { get; set; }
+
     // Computed display properties
     public string FullyQualifiedName =>
         string.IsNullOrEmpty(ColumnName)

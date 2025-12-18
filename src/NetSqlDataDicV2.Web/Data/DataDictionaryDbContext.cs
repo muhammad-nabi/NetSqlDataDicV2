@@ -15,6 +15,7 @@ public class DataDictionaryDbContext : DbContext
     public DbSet<SourceConnection> SourceConnections => Set<SourceConnection>();
     public DbSet<EfModelSource> EfModelSources => Set<EfModelSource>();
     public DbSet<DataElementAudit> DataElementAudits => Set<DataElementAudit>();
+    public DbSet<DataElementNote> DataElementNotes => Set<DataElementNote>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
