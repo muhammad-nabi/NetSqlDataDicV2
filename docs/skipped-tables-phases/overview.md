@@ -19,10 +19,10 @@ Separate the comparison results into two grids:
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1 | Pending | Data layer (SkippedTableViewModel, result model update) |
-| 2 | Pending | Service layer (table-level detection logic) |
-| 3 | Pending | Controller layer (JSON response update) |
-| 4 | Pending | UI layer (skipped tables section, DataTable) |
+| 1 | Complete | Data layer (SkippedTableViewModel, result model update) |
+| 2 | Complete | Service layer (table-level detection logic) |
+| 3 | Complete | Controller layer (JSON response update) |
+| 4 | Complete | UI layer (skipped tables section, DataTable) |
 
 ## Key Behavior
 

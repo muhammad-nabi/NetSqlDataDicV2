@@ -96,16 +96,44 @@ public class ComparisonService : IComparisonService
                 e => $"{e.SchemaName ?? "dbo"}.{e.TableName}.{e.ColumnName}".ToUpperInvariant(),
                 StringComparer.OrdinalIgnoreCase);
 
+        // Build set of tables that exist in EF model (case-insensitive)
+        var efTableKeys = efColumns
+            .Where(e => !string.IsNullOrEmpty(e.TableName))
+            .Select(e => $"{e.SchemaName ?? "dbo"}.{e.TableName}".ToUpperInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
         var results = new List<ComparisonItemViewModel>();
         var processedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        // Track columns per skipped table
+        var skippedTableCounts = new Dictionary<string, (string Schema, string Table, int Count)>(
+            StringComparer.OrdinalIgnoreCase);
 
         // Compare dictionary entries against EF model
         foreach (var dict in columnEntries)
         {
-            var key = $"{dict.SchemaName}.{dict.TableName}.{dict.ColumnName}".ToUpperInvariant();
-            processedKeys.Add(key);
+            var columnKey = $"{dict.SchemaName}.{dict.TableName}.{dict.ColumnName}".ToUpperInvariant();
+            var tableKey = $"{dict.SchemaName}.{dict.TableName}".ToUpperInvariant();
 
-            if (efLookup.TryGetValue(key, out var ef))
+            processedKeys.Add(columnKey);
+
+            // Check if TABLE exists in EF model first
+            if (!efTableKeys.Contains(tableKey))
+            {
+                // Entire table not in EF - add to skipped tables count
+                if (skippedTableCounts.TryGetValue(tableKey, out var existing))
+                {
+                    skippedTableCounts[tableKey] = (existing.Schema, existing.Table, existing.Count + 1);
+                }
+                else
+                {
+                    skippedTableCounts[tableKey] = (dict.SchemaName, dict.TableName, 1);
+                }
+                continue; // Don't add to main comparison results
+            }
+
+            // Table IS in EF - proceed with column-level comparison
+            if (efLookup.TryGetValue(columnKey, out var ef))
             {
                 var isCompatible = IsTypeCompatible(dict.DataType, ef.ClrType);
 
@@ -124,6 +152,7 @@ public class ComparisonService : IComparisonService
             }
             else
             {
+                // Column missing but TABLE is in EF
                 results.Add(new ComparisonItemViewModel
                 {
                     SchemaName = dict.SchemaName,
@@ -158,6 +187,18 @@ public class ComparisonService : IComparisonService
             }
         }
 
+        // Build skipped tables list from counts
+        var skippedTables = skippedTableCounts.Values
+            .Select(t => new SkippedTableViewModel
+            {
+                SchemaName = t.Schema,
+                TableName = t.Table,
+                ColumnCount = t.Count
+            })
+            .OrderBy(t => t.SchemaName)
+            .ThenBy(t => t.TableName)
+            .ToList();
+
         var result = new ComparisonResultViewModel
         {
             DatabaseServer = source.TargetServer,
@@ -168,15 +209,18 @@ public class ComparisonService : IComparisonService
                 .ThenBy(r => r.SchemaName)
                 .ThenBy(r => r.TableName)
                 .ThenBy(r => r.ColumnName)
-                .ToList()
+                .ToList(),
+            SkippedTables = skippedTables
         };
 
         // Update last compared timestamp
         await _sourceService.UpdateLastComparedAsync(sourceId, cancellationToken);
 
         _logger.LogInformation(
-            "Comparison complete (source {Source}): {Matches} matches, {MissingEf} missing in EF, {MissingDb} missing in DB, {Mismatches} type mismatches",
-            source.Name, result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb, result.TotalTypeMismatches);
+            "Comparison complete (source {Source}): {Matches} matches, {MissingEf} missing in EF, " +
+            "{MissingDb} missing in DB, {Mismatches} type mismatches, {SkippedTables} skipped tables ({SkippedColumns} columns)",
+            source.Name, result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb,
+            result.TotalTypeMismatches, result.TotalSkippedTables, result.TotalSkippedColumns);
 
         return result;
     }

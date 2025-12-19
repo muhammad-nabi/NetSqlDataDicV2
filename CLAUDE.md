@@ -175,6 +175,30 @@ Allows multiple timestamped notes per DataElement (database column).
 
 Detailed specs in `docs/notes-feature-phases/`.
 
+## Skipped Tables Feature
+
+Shows tables that exist in Data Dictionary but are completely absent from DbContext during EF model comparison.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Data layer (SkippedTableViewModel, result model update) |
+| 2 | Complete | Service layer (table-level detection logic) |
+| 3 | Complete | Controller layer (JSON response update) |
+| 4 | Complete | UI layer (skipped tables section, DataTable) |
+
+**Key Features:**
+- Tables not in DbContext shown in separate "Skipped Tables" section
+- Column-level mismatches (table in DbContext, column missing) stay in main grid
+- Summary card shows skipped table count
+- Collapsible skipped tables grid with schema, table name, column count
+
+**Behavior:**
+- Entire table missing from DbContext → Skipped Tables grid
+- Table in DbContext, column missing → Main grid as "MissingInEfModel"
+- No tables skipped → Skipped section hidden
+
+Detailed specs in `docs/skipped-tables-phases/`.
+
 ## Security Configuration
 
 DLL loading security is configured in `appsettings.json` under `DllSecurity`:

@@ -71,7 +71,8 @@ NetSqlDataDicV2/
 │   ├── dll-loading-phases/          # DLL loading feature specs
 │   ├── simplification-phases/       # Simplification project specs
 │   ├── audit-trail-phases/          # Audit trail feature specs
-│   └── notes-feature-phases/        # Notes feature specs
+│   ├── notes-feature-phases/        # Notes feature specs
+│   └── skipped-tables-phases/       # Skipped tables feature specs
 ├── src/
 │   └── NetSqlDataDicV2.Web/         # Main MVC Application
 │       ├── Controllers/
@@ -257,11 +258,13 @@ Stores source database connection information.
 
 #### ComparisonService
 - Compares DataElement list with EfModelColumn list
+- Detects tables entirely missing from DbContext (skipped tables)
 - Produces comparison results:
   - **Match**: Column exists in both with compatible types
-  - **MissingInEfModel**: Column in DB but not in EF model
+  - **MissingInEfModel**: Column in DB but not in EF model (table IS in DbContext)
   - **MissingInDatabase**: Property in EF model but not in DB
   - **TypeMismatch**: Types are incompatible
+  - **SkippedTables**: Tables in DB with no corresponding entity in DbContext
 
 ### 5.2 Type Mapping (SQL to CLR)
 
@@ -329,14 +332,17 @@ ComparisonService.CompareAsync(sourceId)
        │
        ├──► Build lookup dictionaries (Schema.Table.Column)
        │
+       ├──► Build efTableKeys set (tables that exist in DbContext)
+       │
        ├──► For each DataElement:
+       │    - If TABLE not in EF: → Add to SkippedTables (skip column comparison)
+       │    - If TABLE in EF but column not in EF: → MissingInEfModel
        │    - If in EF: Check type compatibility → Match or TypeMismatch
-       │    - If not in EF: → MissingInEfModel
        │
        ├──► For each EfModelColumn not in DataElements:
        │    - → MissingInDatabase
        │
-       └──► Return ComparisonResult with all items
+       └──► Return ComparisonResult with Items + SkippedTables
 ```
 
 ## 7. Technology Stack
@@ -433,5 +439,13 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | Notes Phase 2 | Service Layer (ViewModels, Service Methods) | Complete |
 | Notes Phase 3 | UI Layer (Details Page Notes Card, Add Modal) | Complete |
 | Notes Phase 4 | Cleanup (Grid Note Count, Documentation) | Complete |
+
+### Skipped Tables Feature
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Skipped Phase 1 | Data Layer (SkippedTableViewModel, Result Model) | Complete |
+| Skipped Phase 2 | Service Layer (Table-Level Detection Logic) | Complete |
+| Skipped Phase 3 | Controller Layer (JSON Response Update) | Complete |
+| Skipped Phase 4 | UI Layer (Skipped Tables Section, DataTable) | Complete |
 
 **Last Updated:** December 2024

@@ -60,7 +60,10 @@ public class ComparisonController : Controller
                 totalMissingInEf = result.TotalMissingInEf,
                 totalMissingInDb = result.TotalMissingInDb,
                 totalTypeMismatches = result.TotalTypeMismatches,
-                items = result.Items
+                items = result.Items,
+                skippedTables = result.SkippedTables,
+                totalSkippedTables = result.TotalSkippedTables,
+                totalSkippedColumns = result.TotalSkippedColumns
             });
         }
         catch (Exception ex)
