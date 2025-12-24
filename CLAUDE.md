@@ -115,7 +115,7 @@ Runtime loading of EF Core DbContexts from external DLLs for comparison without 
 | 5 | Complete | Security & validation |
 | 6 | Complete | Error handling |
 
-Detailed specs in `docs/dll-loading-phases/`.
+Detailed specs in `docs/01-dll-loading-phases/`.
 
 ## Simplification Project
 
@@ -128,7 +128,7 @@ Ongoing effort to reduce complexity and remove licensing dependencies.
 | 3 | Complete | Cleanup navigation (remove Privacy page, simplify Home) |
 | 4 | Complete | Configuration cleanup & final polish |
 
-Detailed specs in `docs/simplification-phases/`.
+Detailed specs in `docs/02-simplification-phases/`.
 
 ## Audit Trail Feature
 
@@ -153,7 +153,7 @@ Tracks property-level changes to database columns during sync operations.
 - Details page accessible from Dictionary grid shows current state + audit history
 - Separate "Deleted Columns" view for soft-deleted records
 
-Detailed specs in `docs/audit-trail-phases/`.
+Detailed specs in `docs/03-audit-trail-phases/`.
 
 ## Notes Feature
 
@@ -173,7 +173,7 @@ Allows multiple timestamped notes per DataElement (database column).
 - 2000 character limit per note
 - Migrated existing Notes data from legacy single-value field
 
-Detailed specs in `docs/notes-feature-phases/`.
+Detailed specs in `docs/04-notes-feature-phases/`.
 
 ## Skipped Tables Feature
 
@@ -197,7 +197,7 @@ Shows tables that exist in Data Dictionary but are completely absent from DbCont
 - Table in DbContext, column missing → Main grid as "MissingInEfModel"
 - No tables skipped → Skipped section hidden
 
-Detailed specs in `docs/skipped-tables-phases/`.
+Detailed specs in `docs/05-skipped-tables-phases/`.
 
 ## Sync Results Feature
 
@@ -224,7 +224,7 @@ Shows detailed results after a sync operation with all changes (Added, Modified,
 - History table: "View" button for each sync row
 - Back navigation returns to Sync Index
 
-Detailed specs in `docs/sync-results-phases/`.
+Detailed specs in `docs/06-sync-results-phases/`.
 
 ## Security Configuration
 
