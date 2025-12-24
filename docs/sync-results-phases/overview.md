@@ -30,11 +30,11 @@ Create a **Sync Results page** (`/Sync/Results/{syncHistoryId}`) that:
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1 | Pending | Data layer (SyncResultsViewModel, SyncAuditItemViewModel) |
-| 2 | Pending | Service layer (GetSyncResultsAsync method) |
-| 3 | Pending | Controller layer (Results action) |
-| 4 | Pending | UI layer (Results.cshtml with summary cards + DataTable) |
-| 5 | Pending | Update sync page (View Results buttons) |
+| 1 | Complete | Data layer (SyncResultsViewModel, SyncAuditItemViewModel) |
+| 2 | Complete | Service layer (GetSyncResultsAsync method) |
+| 3 | Complete | Controller layer (Results action) |
+| 4 | Complete | UI layer (Results.cshtml with summary cards + DataTable) |
+| 5 | Complete | Update sync page (View Results buttons) |
 
 ## Data Flow
 

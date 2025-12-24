@@ -333,6 +333,70 @@ public class DatabaseSyncService : IDatabaseSyncService
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<SyncResultsViewModel?> GetSyncResultsAsync(
+        int syncHistoryId,
+        CancellationToken cancellationToken = default)
+    {
+        // Get sync history record
+        var syncHistory = await _context.SyncHistory
+            .AsNoTracking()
+            .FirstOrDefaultAsync(h => h.SyncHistoryId == syncHistoryId, cancellationToken);
+
+        if (syncHistory == null)
+        {
+            return null;
+        }
+
+        // Get all audit records for this sync with DataElement navigation
+        var auditItems = await _context.DataElementAudits
+            .AsNoTracking()
+            .Include(a => a.DataElement)
+            .IgnoreQueryFilters()
+            .Where(a => a.SyncHistoryId == syncHistoryId)
+            .OrderByDescending(a => a.ChangeTime)
+            .ThenBy(a => a.DataElement.SchemaName)
+            .ThenBy(a => a.DataElement.TableName)
+            .ThenBy(a => a.DataElement.ColumnName)
+            .Select(a => new SyncAuditItemViewModel
+            {
+                DataElementAuditId = a.DataElementAuditId,
+                DataElementId = a.DataElementId,
+                ChangeType = a.ChangeType,
+                PropertyName = a.PropertyName,
+                OldValue = a.OldValue,
+                NewValue = a.NewValue,
+                ChangeTime = a.ChangeTime,
+                SchemaName = a.DataElement.SchemaName,
+                TableName = a.DataElement.TableName,
+                ColumnName = a.DataElement.ColumnName ?? string.Empty
+            })
+            .ToListAsync(cancellationToken);
+
+        // Calculate counts from audit records
+        var addedCount = auditItems.Count(a => a.ChangeType == "Added");
+        var modifiedCount = auditItems.Count(a => a.ChangeType == "Modified");
+        var deletedCount = auditItems.Count(a => a.ChangeType == "Deleted");
+        var restoredCount = auditItems.Count(a => a.ChangeType == "Restored");
+
+        return new SyncResultsViewModel
+        {
+            SyncHistoryId = syncHistory.SyncHistoryId,
+            DatabaseServer = syncHistory.DatabaseServer,
+            DatabaseName = syncHistory.DatabaseName,
+            SyncStartTime = syncHistory.SyncStartTime,
+            SyncEndTime = syncHistory.SyncEndTime,
+            Status = syncHistory.Status,
+            ErrorMessage = syncHistory.ErrorMessage,
+            TablesProcessed = syncHistory.TablesProcessed ?? 0,
+            ColumnsProcessed = syncHistory.ColumnsProcessed ?? 0,
+            AddedCount = addedCount,
+            ModifiedCount = modifiedCount,
+            DeletedCount = deletedCount,
+            RestoredCount = restoredCount,
+            AuditItems = auditItems
+        };
+    }
+
     private static DataElement CreateDataElement(SourceColumnDto col, string serverName, string databaseName)
     {
         return new DataElement

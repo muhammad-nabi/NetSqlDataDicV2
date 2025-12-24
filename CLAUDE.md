@@ -199,6 +199,33 @@ Shows tables that exist in Data Dictionary but are completely absent from DbCont
 
 Detailed specs in `docs/skipped-tables-phases/`.
 
+## Sync Results Feature
+
+Shows detailed results after a sync operation with all changes (Added, Modified, Deleted, Restored).
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Data layer (SyncResultsViewModel, SyncAuditItemViewModel) |
+| 2 | Complete | Service layer (GetSyncResultsAsync method) |
+| 3 | Complete | Controller layer (Results action) |
+| 4 | Complete | UI layer (Results.cshtml with summary cards + DataTable) |
+| 5 | Complete | Update sync page (View Results buttons) |
+
+**Key Features:**
+- Results page accessible at `/Sync/Results/{syncHistoryId}`
+- Summary cards showing counts by change type (Added, Modified, Deleted, Restored)
+- Filterable DataTable grid with all audit records
+- Column links navigate to Details page for deeper investigation
+- "View Results" button appears after sync completes
+- "View" button in sync history table for each completed/failed sync
+
+**Navigation:**
+- After sync: "View Results" button links to results page
+- History table: "View" button for each sync row
+- Back navigation returns to Sync Index
+
+Detailed specs in `docs/sync-results-phases/`.
+
 ## Security Configuration
 
 DLL loading security is configured in `appsettings.json` under `DllSecurity`:

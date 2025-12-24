@@ -1,22 +1,3 @@
-# Phase 4: UI Layer - Results View
-
-## Status: Complete
-
-## Objective
-
-Create the Results view with summary cards and filterable DataTable grid.
-
-## Files to Create
-
-| File | Description |
-|------|-------------|
-| `Views/Sync/Results.cshtml` | Results page with summary cards and DataTable |
-
-## View Structure
-
-### Page Header
-
-```html
 @model NetSqlDataDicV2.Web.Models.ViewModels.SyncResultsViewModel
 @{
     ViewData["Title"] = $"Sync Results - {Model.SyncStartTime:yyyy-MM-dd HH:mm}";
@@ -37,11 +18,7 @@ Create the Results view with summary cards and filterable DataTable grid.
         Back to Sync
     </a>
 </div>
-```
 
-### Error Alert (Failed Sync)
-
-```html
 @if (Model.IsFailed)
 {
     <div class="alert alert-danger mb-4">
@@ -49,13 +26,9 @@ Create the Results view with summary cards and filterable DataTable grid.
         <p class="mb-0">@(Model.ErrorMessage ?? "An unknown error occurred during sync.")</p>
     </div>
 }
-```
-
-### Summary Cards
-
-```html
-@if (!Model.IsFailed)
+else
 {
+    <!-- Summary Cards -->
     <div class="row mb-4">
         <div class="col">
             <div class="card text-center">
@@ -99,11 +72,8 @@ Create the Results view with summary cards and filterable DataTable grid.
         </div>
     </div>
 }
-```
 
-### Changes Grid Card
-
-```html
+<!-- Changes Grid -->
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center py-2">
         <h6 class="mb-0">Changes</h6>
@@ -119,97 +89,79 @@ Create the Results view with summary cards and filterable DataTable grid.
         }
     </div>
     <div class="card-body p-0">
-        <!-- Grid or empty state here -->
+        @if (Model.HasChanges)
+        {
+            <div class="table-responsive">
+                <table id="changesGrid" class="table table-striped table-hover table-sm mb-0" style="width:100%">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Change Type</th>
+                            <th>Schema</th>
+                            <th>Table</th>
+                            <th>Column</th>
+                            <th>Property</th>
+                            <th>Old Value</th>
+                            <th>New Value</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.AuditItems)
+                        {
+                            <tr data-change-type="@item.ChangeType">
+                                <td>
+                                    <span class="badge @item.ChangeTypeBadgeClass">@item.ChangeType</span>
+                                </td>
+                                <td><code class="text-muted">@item.SchemaName</code></td>
+                                <td>@item.TableName</td>
+                                <td>
+                                    <a asp-controller="DataDictionary" asp-action="Details" asp-route-id="@item.DataElementId">
+                                        @item.ColumnName
+                                    </a>
+                                </td>
+                                <td>@(item.PropertyName ?? "-")</td>
+                                <td>
+                                    @if (item.OldValue != null)
+                                    {
+                                        <code>@item.OldValue</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.NewValue != null)
+                                    {
+                                        <code>@item.NewValue</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>@item.ChangeTime.ToString("HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else if (Model.IsFailed)
+        {
+            <div class="p-4 text-center text-muted">
+                <em>No changes were recorded due to sync failure.</em>
+            </div>
+        }
+        else
+        {
+            <div class="p-4 text-center text-muted">
+                <em>No changes detected during this sync. The database schema matches the Data Dictionary.</em>
+            </div>
+        }
     </div>
 </div>
-```
 
-### DataTable Grid
-
-```html
-@if (Model.HasChanges)
-{
-    <div class="table-responsive">
-        <table id="changesGrid" class="table table-striped table-hover table-sm mb-0" style="width:100%">
-            <thead class="table-light">
-                <tr>
-                    <th>Change Type</th>
-                    <th>Schema</th>
-                    <th>Table</th>
-                    <th>Column</th>
-                    <th>Property</th>
-                    <th>Old Value</th>
-                    <th>New Value</th>
-                    <th>Time</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.AuditItems)
-                {
-                    <tr data-change-type="@item.ChangeType">
-                        <td>
-                            <span class="badge @item.ChangeTypeBadgeClass">@item.ChangeType</span>
-                        </td>
-                        <td><code class="text-muted">@item.SchemaName</code></td>
-                        <td>@item.TableName</td>
-                        <td>
-                            <a asp-controller="DataDictionary" asp-action="Details" asp-route-id="@item.DataElementId">
-                                @item.ColumnName
-                            </a>
-                        </td>
-                        <td>@(item.PropertyName ?? "-")</td>
-                        <td>
-                            @if (item.OldValue != null)
-                            {
-                                <code>@item.OldValue</code>
-                            }
-                            else
-                            {
-                                <span class="text-muted">-</span>
-                            }
-                        </td>
-                        <td>
-                            @if (item.NewValue != null)
-                            {
-                                <code>@item.NewValue</code>
-                            }
-                            else
-                            {
-                                <span class="text-muted">-</span>
-                            }
-                        </td>
-                        <td>@item.ChangeTime.ToString("HH:mm:ss")</td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-}
-```
-
-### Empty States
-
-```html
-@if (!Model.HasChanges)
-{
-    @if (Model.IsFailed)
-    {
-        <div class="p-4 text-center text-muted">
-            <em>No changes were recorded due to sync failure.</em>
-        </div>
-    }
-    else
-    {
-        <div class="p-4 text-center text-muted">
-            <em>No changes detected during this sync. The database schema matches the Data Dictionary.</em>
-        </div>
-    }
-}
-```
-
-### JavaScript (Scripts Section)
-
-```html
 @section Scripts {
 <script>
     $(document).ready(function () {
@@ -257,34 +209,3 @@ Create the Results view with summary cards and filterable DataTable grid.
     });
 </script>
 }
-```
-
-## Design Notes
-
-1. **Summary cards** - Follow Comparison page pattern with Bootstrap row/col
-2. **Filter buttons** - Match Comparison page `.filter-btn` pattern
-3. **Column links** - Click column name to see full Details page with audit history
-4. **Time display** - Only HH:mm:ss since date is in header
-5. **DataTable filtering** - Uses column(0) regex search for exact match
-6. **Pagination** - 50 default, options for 25/50/100/All
-
-## UI Patterns Referenced
-
-| Pattern | Source |
-|---------|--------|
-| Summary cards | `Views/Comparison/Index.cshtml` |
-| Filter buttons | `Views/Comparison/Index.cshtml` |
-| Audit badge colors | `Views/DataDictionary/Details.cshtml` |
-| DataTable config | `Views/DataDictionary/Index.cshtml` |
-
-## Verification
-
-After this phase:
-- [ ] Project builds successfully
-- [ ] Results page renders with summary cards
-- [ ] DataTable displays audit records
-- [ ] Filter buttons filter by change type
-- [ ] Column links navigate to Details page
-- [ ] Empty state shows for 0 changes
-- [ ] Error alert shows for failed sync
-- [ ] Back button returns to Sync Index

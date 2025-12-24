@@ -92,13 +92,14 @@
                         <th>Added</th>
                         <th>Updated</th>
                         <th>Removed</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     @if (!Model.Any())
                     {
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">
+                            <td colspan="10" class="text-center text-muted py-4">
                                 No sync history yet. Click "Sync Now" to get started.
                             </td>
                         </tr>
@@ -153,6 +154,23 @@
                                         <span class="text-muted">0</span>
                                     }
                                 </td>
+                                <td>
+                                    @if (item.Status == "Completed")
+                                    {
+                                        <a asp-action="Results" asp-route-id="@item.SyncHistoryId"
+                                           class="btn btn-sm btn-outline-primary">
+                                            View
+                                        </a>
+                                    }
+                                    else if (item.Status == "Failed")
+                                    {
+                                        <a asp-action="Results" asp-route-id="@item.SyncHistoryId"
+                                           class="btn btn-sm btn-outline-secondary"
+                                           title="View error details">
+                                            View
+                                        </a>
+                                    }
+                                </td>
                             </tr>
                         }
                     }
@@ -192,14 +210,15 @@
                         $alert.removeClass("alert-danger").addClass("alert-success");
                         $heading.text("Sync Completed Successfully!");
                         $details.html(
-                            '<ul class="mb-0">' +
+                            '<ul class="mb-2">' +
                             '<li>Tables processed: <strong>' + data.tablesProcessed + '</strong></li>' +
                             '<li>Columns processed: <strong>' + data.columnsProcessed + '</strong></li>' +
                             '<li>Added: <strong class="text-success">' + data.columnsAdded + '</strong></li>' +
                             '<li>Updated: <strong class="text-warning">' + data.columnsUpdated + '</strong></li>' +
                             '<li>Removed: <strong class="text-danger">' + data.columnsRemoved + '</strong></li>' +
                             '<li>Duration: <strong>' + data.duration.toFixed(1) + ' seconds</strong></li>' +
-                            '</ul>'
+                            '</ul>' +
+                            '<a href="@Url.Action("Results", "Sync")/' + data.syncHistoryId + '" class="btn btn-sm btn-outline-primary">View Results</a>'
                         );
                     } else {
                         $alert.removeClass("alert-success").addClass("alert-danger");
@@ -208,11 +227,6 @@
                     }
 
                     $result.removeClass("d-none");
-
-                    // Reload page after 2 seconds to show updated history
-                    setTimeout(function () {
-                        location.reload();
-                    }, 2000);
                 },
                 error: function (xhr, status, error) {
                     var $alert = $result.find(".alert");

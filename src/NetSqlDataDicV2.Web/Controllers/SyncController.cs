@@ -54,6 +54,7 @@ public class SyncController : Controller
             {
                 success = result.Success,
                 error = result.ErrorMessage,
+                syncHistoryId = result.SyncHistoryId,
                 tablesProcessed = result.TablesProcessed,
                 columnsProcessed = result.ColumnsProcessed,
                 columnsAdded = result.ColumnsAdded,
@@ -67,5 +68,22 @@ public class SyncController : Controller
             _logger.LogError(ex, "Sync execution failed");
             return Json(new { success = false, error = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Displays detailed results for a specific sync operation.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Results(int id, CancellationToken cancellationToken)
+    {
+        var results = await _syncService.GetSyncResultsAsync(id, cancellationToken);
+
+        if (results == null)
+        {
+            _logger.LogWarning("Sync history {SyncHistoryId} not found", id);
+            return NotFound();
+        }
+
+        return View(results);
     }
 }
