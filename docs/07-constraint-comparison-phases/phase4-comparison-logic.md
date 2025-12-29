@@ -20,11 +20,25 @@ private static bool IsStringType(string? sqlType)
     return upper.Contains("CHAR") || upper.Contains("TEXT");
 }
 
+private static bool IsUnicodeStringType(string? sqlType)
+{
+    if (string.IsNullOrEmpty(sqlType)) return false;
+    var baseSqlType = sqlType.Split('(')[0].ToUpperInvariant();
+    return baseSqlType is "NVARCHAR" or "NCHAR" or "NTEXT";
+}
+
 private static bool IsDecimalType(string? sqlType)
 {
     if (string.IsNullOrEmpty(sqlType)) return false;
     var baseSqlType = sqlType.Split('(')[0].ToUpperInvariant();
     return baseSqlType is "DECIMAL" or "NUMERIC" or "MONEY" or "SMALLMONEY";
+}
+
+private static bool IsMoneyType(string? sqlType)
+{
+    if (string.IsNullOrEmpty(sqlType)) return false;
+    var baseSqlType = sqlType.Split('(')[0].ToUpperInvariant();
+    return baseSqlType is "MONEY" or "SMALLMONEY";
 }
 ```
 
@@ -46,6 +60,13 @@ private List<ConstraintMismatchDetail> CompareConstraints(
     {
         var efMaxLength = ef.MaxLength;
         var dbMaxLength = dict.MaxLength;
+
+        // For Unicode types (NVARCHAR, NCHAR, NTEXT), SQL Server stores max_length in bytes
+        // (2 bytes per character), while EF Core uses character count
+        if (IsUnicodeStringType(dict.DataType) && dbMaxLength.HasValue && dbMaxLength > 0)
+        {
+            dbMaxLength = dbMaxLength / 2;
+        }
 
         // EF null with DB -1 (MAX) is considered a match
         bool isMaxLengthMatch = efMaxLength == dbMaxLength
@@ -73,8 +94,9 @@ private List<ConstraintMismatchDetail> CompareConstraints(
         });
     }
 
-    // Compare Precision/Scale (only for decimal types)
-    if (IsDecimalType(dict.DataType))
+    // Compare Precision/Scale (only for decimal/numeric types, NOT money types)
+    // MONEY and SMALLMONEY have fixed precision/scale that can't be configured in EF Core
+    if (IsDecimalType(dict.DataType) && !IsMoneyType(dict.DataType))
     {
         if (dict.Precision.HasValue || ef.Precision.HasValue)
         {
@@ -194,6 +216,8 @@ if (efLookup.TryGetValue(columnKey, out var ef))
 | Case | Handling |
 |------|----------|
 | EF MaxLength null, DB -1 | Treat as match (both mean MAX) |
+| Unicode string MaxLength (NVARCHAR) | DB stores bytes (2 per char), divide by 2 for comparison |
+| MONEY/SMALLMONEY precision/scale | Skip comparison (fixed precision can't be configured in EF) |
 | EF Precision null | Compare only if DB has value |
 | Type mismatch | Skip constraint check (meaningless) |
 | Multiple mismatches | All reported in list |

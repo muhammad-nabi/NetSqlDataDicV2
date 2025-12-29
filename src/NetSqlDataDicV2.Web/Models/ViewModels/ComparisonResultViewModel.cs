@@ -18,6 +18,7 @@ public class ComparisonResultViewModel
     public int TotalMissingInEf => Items.Count(i => i.Status == ComparisonStatus.MissingInEfModel);
     public int TotalMissingInDb => Items.Count(i => i.Status == ComparisonStatus.MissingInDatabase);
     public int TotalTypeMismatches => Items.Count(i => i.Status == ComparisonStatus.TypeMismatch);
+    public int TotalConstraintMismatches => Items.Count(i => i.Status == ComparisonStatus.ConstraintMismatch);
     public int TotalSkippedTables => SkippedTables.Count;
     public int TotalSkippedColumns => SkippedTables.Sum(t => t.ColumnCount);
 }
@@ -46,12 +47,19 @@ public class ComparisonItemViewModel
     public ComparisonStatus Status { get; set; }
     public string? Notes { get; set; }
 
+    public List<ConstraintMismatchDetail> ConstraintMismatches { get; set; } = new();
+
+    public string? ConstraintMismatchSummary => ConstraintMismatches.Count > 0
+        ? string.Join("; ", ConstraintMismatches.Select(c => c.DisplayText))
+        : null;
+
     public string StatusDisplay => Status switch
     {
         ComparisonStatus.Match => "Match",
         ComparisonStatus.MissingInEfModel => "Missing in EF Model",
         ComparisonStatus.MissingInDatabase => "Missing in Database",
         ComparisonStatus.TypeMismatch => "Type Mismatch",
+        ComparisonStatus.ConstraintMismatch => "Constraint Mismatch",
         _ => "Unknown"
     };
 
@@ -61,6 +69,7 @@ public class ComparisonItemViewModel
         ComparisonStatus.MissingInEfModel => "bg-warning",
         ComparisonStatus.MissingInDatabase => "bg-danger",
         ComparisonStatus.TypeMismatch => "bg-info",
+        ComparisonStatus.ConstraintMismatch => "bg-purple",
         _ => "bg-secondary"
     };
 }
@@ -70,5 +79,19 @@ public enum ComparisonStatus
     Match,
     MissingInEfModel,
     MissingInDatabase,
-    TypeMismatch
+    TypeMismatch,
+    ConstraintMismatch
+}
+
+/// <summary>
+/// Represents a single constraint difference between EF model and Data Dictionary.
+/// </summary>
+public class ConstraintMismatchDetail
+{
+    public string ConstraintName { get; set; } = string.Empty;
+    public string? DatabaseValue { get; set; }
+    public string? EfValue { get; set; }
+
+    public string DisplayText =>
+        $"{ConstraintName}: DB={DatabaseValue ?? "null"} vs EF={EfValue ?? "null"}";
 }

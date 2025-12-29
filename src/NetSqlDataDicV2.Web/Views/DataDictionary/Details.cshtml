@@ -52,7 +52,19 @@
                     </tr>
                     <tr>
                         <th>Max Length</th>
-                        <td>@(Model.DataElement.MaxLength?.ToString() ?? "-")</td>
+                        <td>
+                            @{
+                                var maxLength = Model.DataElement.MaxLength;
+                                // For Unicode types (NVARCHAR, NCHAR), convert from bytes to characters
+                                if (maxLength.HasValue && maxLength > 0 &&
+                                    (Model.DataElement.DataType?.StartsWith("NVARCHAR", StringComparison.OrdinalIgnoreCase) == true ||
+                                     Model.DataElement.DataType?.StartsWith("NCHAR", StringComparison.OrdinalIgnoreCase) == true))
+                                {
+                                    maxLength = maxLength / 2;
+                                }
+                            }
+                            @(maxLength?.ToString() ?? "-")
+                        </td>
                     </tr>
                 </table>
             </div>

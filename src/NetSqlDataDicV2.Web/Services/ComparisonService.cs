@@ -135,7 +135,33 @@ public class ComparisonService : IComparisonService
             // Table IS in EF - proceed with column-level comparison
             if (efLookup.TryGetValue(columnKey, out var ef))
             {
-                var isCompatible = IsTypeCompatible(dict.DataType, ef.ClrType);
+                var isTypeCompatible = IsTypeCompatible(dict.DataType, ef.ClrType);
+                var constraintMismatches = new List<ConstraintMismatchDetail>();
+
+                // Only check constraints if type is compatible
+                if (isTypeCompatible)
+                {
+                    constraintMismatches = CompareConstraints(dict, ef);
+                }
+
+                // Determine status (TypeMismatch takes precedence)
+                ComparisonStatus status;
+                string? notes = null;
+
+                if (!isTypeCompatible)
+                {
+                    status = ComparisonStatus.TypeMismatch;
+                    notes = $"DB type '{dict.DataType}' may not match CLR type '{ef.ClrType}'";
+                }
+                else if (constraintMismatches.Count > 0)
+                {
+                    status = ComparisonStatus.ConstraintMismatch;
+                    notes = string.Join("; ", constraintMismatches.Select(c => c.DisplayText));
+                }
+                else
+                {
+                    status = ComparisonStatus.Match;
+                }
 
                 results.Add(new ComparisonItemViewModel
                 {
@@ -146,8 +172,9 @@ public class ComparisonService : IComparisonService
                     EfClrType = ef.ClrType,
                     EfEntityName = ef.EntityName,
                     EfPropertyName = ef.PropertyName,
-                    Status = isCompatible ? ComparisonStatus.Match : ComparisonStatus.TypeMismatch,
-                    Notes = isCompatible ? null : $"DB type '{dict.DataType}' may not match CLR type '{ef.ClrType}'"
+                    Status = status,
+                    Notes = notes,
+                    ConstraintMismatches = constraintMismatches
                 });
             }
             else
@@ -218,9 +245,10 @@ public class ComparisonService : IComparisonService
 
         _logger.LogInformation(
             "Comparison complete (source {Source}): {Matches} matches, {MissingEf} missing in EF, " +
-            "{MissingDb} missing in DB, {Mismatches} type mismatches, {SkippedTables} skipped tables ({SkippedColumns} columns)",
+            "{MissingDb} missing in DB, {TypeMismatches} type mismatches, {ConstraintMismatches} constraint mismatches, " +
+            "{SkippedTables} skipped tables ({SkippedColumns} columns)",
             source.Name, result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb,
-            result.TotalTypeMismatches, result.TotalSkippedTables, result.TotalSkippedColumns);
+            result.TotalTypeMismatches, result.TotalConstraintMismatches, result.TotalSkippedTables, result.TotalSkippedColumns);
 
         return result;
     }
@@ -247,5 +275,127 @@ public class ComparisonService : IComparisonService
         _logger.LogWarning("Unknown SQL type '{SqlType}' - assuming compatible with '{ClrType}'",
             sqlType, clrType);
         return true;
+    }
+
+    private static bool IsStringType(string? sqlType)
+    {
+        if (string.IsNullOrEmpty(sqlType)) return false;
+        var upper = sqlType.ToUpperInvariant();
+        return upper.Contains("CHAR") || upper.Contains("TEXT");
+    }
+
+    private static bool IsUnicodeStringType(string? sqlType)
+    {
+        if (string.IsNullOrEmpty(sqlType)) return false;
+        var baseSqlType = sqlType.Split('(')[0].ToUpperInvariant();
+        return baseSqlType is "NVARCHAR" or "NCHAR" or "NTEXT";
+    }
+
+    private static bool IsDecimalType(string? sqlType)
+    {
+        if (string.IsNullOrEmpty(sqlType)) return false;
+        var baseSqlType = sqlType.Split('(')[0].ToUpperInvariant();
+        return baseSqlType is "DECIMAL" or "NUMERIC" or "MONEY" or "SMALLMONEY";
+    }
+
+    private static bool IsMoneyType(string? sqlType)
+    {
+        if (string.IsNullOrEmpty(sqlType)) return false;
+        var baseSqlType = sqlType.Split('(')[0].ToUpperInvariant();
+        return baseSqlType is "MONEY" or "SMALLMONEY";
+    }
+
+    /// <summary>
+    /// Compares constraints between Data Dictionary and EF model.
+    /// Returns list of mismatches (empty if all match).
+    /// </summary>
+    private List<ConstraintMismatchDetail> CompareConstraints(
+        Models.ViewModels.DataElementViewModel dict,
+        EfModelColumnDto ef)
+    {
+        var mismatches = new List<ConstraintMismatchDetail>();
+
+        // Compare MaxLength (only for string types)
+        if (IsStringType(dict.DataType))
+        {
+            var efMaxLength = ef.MaxLength;
+            var dbMaxLength = dict.MaxLength;
+
+            // For Unicode types (NVARCHAR, NCHAR, NTEXT), SQL Server stores max_length in bytes
+            // (2 bytes per character), while EF Core uses character count
+            if (IsUnicodeStringType(dict.DataType) && dbMaxLength.HasValue && dbMaxLength > 0)
+            {
+                dbMaxLength = dbMaxLength / 2;
+            }
+
+            // EF null with DB -1 (MAX) is considered a match
+            bool isMaxLengthMatch = efMaxLength == dbMaxLength
+                || (efMaxLength == null && dbMaxLength == -1);
+
+            if (!isMaxLengthMatch)
+            {
+                mismatches.Add(new ConstraintMismatchDetail
+                {
+                    ConstraintName = "MaxLength",
+                    DatabaseValue = dbMaxLength == -1 ? "MAX" : dbMaxLength?.ToString() ?? "null",
+                    EfValue = efMaxLength?.ToString() ?? "MAX"
+                });
+            }
+        }
+
+        // Compare IsNullable
+        if (dict.IsNullable != ef.IsNullable)
+        {
+            mismatches.Add(new ConstraintMismatchDetail
+            {
+                ConstraintName = "IsNullable",
+                DatabaseValue = dict.IsNullable.ToString(),
+                EfValue = ef.IsNullable.ToString()
+            });
+        }
+
+        // Compare Precision/Scale (only for decimal/numeric types, NOT money types)
+        // MONEY and SMALLMONEY have fixed precision/scale that can't be configured in EF Core
+        if (IsDecimalType(dict.DataType) && !IsMoneyType(dict.DataType))
+        {
+            if (dict.Precision.HasValue || ef.Precision.HasValue)
+            {
+                if (dict.Precision != ef.Precision)
+                {
+                    mismatches.Add(new ConstraintMismatchDetail
+                    {
+                        ConstraintName = "Precision",
+                        DatabaseValue = dict.Precision?.ToString() ?? "null",
+                        EfValue = ef.Precision?.ToString() ?? "default"
+                    });
+                }
+            }
+
+            if (dict.Scale.HasValue || ef.Scale.HasValue)
+            {
+                if (dict.Scale != ef.Scale)
+                {
+                    mismatches.Add(new ConstraintMismatchDetail
+                    {
+                        ConstraintName = "Scale",
+                        DatabaseValue = dict.Scale?.ToString() ?? "null",
+                        EfValue = ef.Scale?.ToString() ?? "default"
+                    });
+                }
+            }
+        }
+
+        // Compare IsPrimaryKey
+        if (dict.IsPrimaryKey != ef.IsPrimaryKey)
+        {
+            mismatches.Add(new ConstraintMismatchDetail
+            {
+                ConstraintName = "IsPrimaryKey",
+                DatabaseValue = dict.IsPrimaryKey.ToString(),
+                EfValue = ef.IsPrimaryKey.ToString()
+            });
+        }
+
+        return mismatches;
     }
 }

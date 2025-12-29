@@ -60,6 +60,7 @@ public class ComparisonController : Controller
                 totalMissingInEf = result.TotalMissingInEf,
                 totalMissingInDb = result.TotalMissingInDb,
                 totalTypeMismatches = result.TotalTypeMismatches,
+                totalConstraintMismatches = result.TotalConstraintMismatches,
                 items = result.Items,
                 skippedTables = result.SkippedTables,
                 totalSkippedTables = result.TotalSkippedTables,

@@ -5,6 +5,13 @@
     var selectedSourceId = ViewBag.SelectedSourceId as int?;
 }
 
+<style>
+    .bg-purple { background-color: #6f42c1 !important; color: white !important; }
+    .text-purple { color: #6f42c1 !important; }
+    .btn-outline-purple { border-color: #6f42c1; color: #6f42c1; }
+    .btn-outline-purple:hover { background-color: #6f42c1; color: white; }
+</style>
+
 <h2>Compare Data Dictionary with EF Core Models</h2>
 
 <div class="row mb-4">
@@ -85,6 +92,10 @@
                         <small class="text-muted">Type Mismatches</small>
                     </div>
                     <div class="col">
+                        <h3 id="constraintMismatchCount" class="text-purple mb-0">0</h3>
+                        <small class="text-muted">Constraint Mismatches</small>
+                    </div>
+                    <div class="col">
                         <h3 id="skippedCount" class="text-secondary mb-0">0</h3>
                         <small class="text-muted">Skipped Tables</small>
                     </div>
@@ -102,7 +113,8 @@
             <button type="button" class="btn btn-outline-success filter-btn" data-filter="Match">Match</button>
             <button type="button" class="btn btn-outline-warning filter-btn" data-filter="MissingInEfModel">-EF</button>
             <button type="button" class="btn btn-outline-danger filter-btn" data-filter="MissingInDatabase">-DB</button>
-            <button type="button" class="btn btn-outline-info filter-btn" data-filter="TypeMismatch">Mismatch</button>
+            <button type="button" class="btn btn-outline-info filter-btn" data-filter="TypeMismatch">Type</button>
+            <button type="button" class="btn btn-outline-purple filter-btn" data-filter="ConstraintMismatch">Constraint</button>
         </div>
     </div>
     <div class="card-body p-0">
@@ -116,11 +128,12 @@
                         <th>DB Type</th>
                         <th>EF Property</th>
                         <th>CLR Type</th>
+                        <th>Constraint Details</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td colspan="6" class="text-center text-muted py-4">
+                        <td colspan="7" class="text-center text-muted py-4">
                             Select a source and click "Run Comparison" to see results
                         </td>
                     </tr>
@@ -220,6 +233,7 @@
                         $("#missingEfCount").text(result.totalMissingInEf);
                         $("#missingDbCount").text(result.totalMissingInDb);
                         $("#mismatchCount").text(result.totalTypeMismatches);
+                        $("#constraintMismatchCount").text(result.totalConstraintMismatches);
                         $("#skippedCount").text(result.totalSkippedTables);
 
                         // Store data and initialize/refresh grid
@@ -276,19 +290,27 @@
             "Match": 0,
             "MissingInEfModel": 1,
             "MissingInDatabase": 2,
-            "TypeMismatch": 3
+            "TypeMismatch": 3,
+            "ConstraintMismatch": 4
         };
-        return statusMap[statusName];
+        return statusMap[statusName] ?? -1;
     }
 
     function getStatusName(statusValue) {
-        var statusNames = ["Match", "Missing in EF", "Missing in DB", "Type Mismatch"];
+        var statusNames = ["Match", "Missing in EF", "Missing in DB", "Type Mismatch", "Constraint Mismatch"];
         return statusNames[statusValue] || "Unknown";
     }
 
     function getStatusBadgeClass(statusValue) {
-        var classes = ["bg-success", "bg-warning text-dark", "bg-danger", "bg-info text-dark"];
+        var classes = ["bg-success", "bg-warning text-dark", "bg-danger", "bg-info text-dark", "bg-purple"];
         return classes[statusValue] || "bg-secondary";
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        var div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     function initializeGrid(data) {
@@ -322,15 +344,23 @@
                         return '<span title="Entity: ' + (row.efEntityName || '') + '">' + data + '</span>';
                     }
                 },
-                { data: 'efClrType', render: function(data) { return data || '-'; } }
+                { data: 'efClrType', render: function(data) { return data || '-'; } },
+                {
+                    data: 'constraintMismatchSummary',
+                    render: function(data, type, row) {
+                        if (!data) return '-';
+                        return '<span class="text-muted small">' + escapeHtml(data) + '</span>';
+                    }
+                }
             ],
             columnDefs: [
-                { width: '90px', targets: 0 },   // Status
-                { width: '160px', targets: 1 },  // Table
-                { width: '130px', targets: 2 },  // Column
-                { width: '110px', targets: 3 },  // DB Type
-                { width: '130px', targets: 4 },  // EF Property
-                { width: '80px', targets: 5 }    // CLR Type
+                { width: '100px', targets: 0 },  // Status
+                { width: '130px', targets: 1 },  // Table
+                { width: '100px', targets: 2 },  // Column
+                { width: '100px', targets: 3 },  // DB Type
+                { width: '100px', targets: 4 },  // EF Property
+                { width: '70px', targets: 5 },   // CLR Type
+                { width: '250px', targets: 6 }   // Constraint Details
             ],
             autoWidth: false,
             pageLength: 50,

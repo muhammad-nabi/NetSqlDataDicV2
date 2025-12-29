@@ -226,6 +226,31 @@ Shows detailed results after a sync operation with all changes (Added, Modified,
 
 Detailed specs in `docs/06-sync-results-phases/`.
 
+## Constraint Comparison Feature
+
+Compares EF Core model constraints against Data Dictionary values for MaxLength, IsNullable, Precision, Scale, and IsPrimaryKey.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Data layer (EfModelColumnDto extension) |
+| 2 | Complete | Service layer (Extract constraints from EF metadata) |
+| 3 | Complete | ViewModel layer (ConstraintMismatch status) |
+| 4 | Complete | Comparison logic (CompareConstraints method) |
+| 5 | Complete | Controller layer (JSON response update) |
+| 6 | Complete | UI layer (Purple badge, summary card, filter, grid column) |
+
+**Key Features:**
+- Detects mismatches for MaxLength, IsNullable, Precision, Scale, IsPrimaryKey
+- New "Constraint Mismatch" status (purple badge)
+- Summary card shows constraint mismatch count
+- Filter button to view only constraint mismatches
+- Constraint Details column in comparison grid
+- Type mismatch takes precedence over constraint mismatch
+
+**Status Priority:** TypeMismatch > ConstraintMismatch > Match
+
+Detailed specs in `docs/07-constraint-comparison-phases/`.
+
 ## Security Configuration
 
 DLL loading security is configured in `appsettings.json` under `DllSecurity`:

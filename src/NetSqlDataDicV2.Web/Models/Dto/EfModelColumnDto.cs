@@ -10,4 +10,7 @@ public class EfModelColumnDto
     public string? SchemaName { get; set; }
     public bool IsNullable { get; set; }
     public int? MaxLength { get; set; }
+    public int? Precision { get; set; }
+    public int? Scale { get; set; }
+    public bool IsPrimaryKey { get; set; }
 }

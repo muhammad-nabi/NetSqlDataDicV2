@@ -268,6 +268,8 @@ public class DataDictionaryService : IDataDictionaryService
         IsNullable = entity.IsNullable,
         IsPrimaryKey = entity.IsPrimaryKey,
         MaxLength = entity.MaxLength,
+        Precision = entity.Precision,
+        Scale = entity.Scale,
         CreateTime = entity.CreateTime,
         LastUpdateTime = entity.LastUpdateTime,
         LastSyncTime = entity.LastSyncTime,

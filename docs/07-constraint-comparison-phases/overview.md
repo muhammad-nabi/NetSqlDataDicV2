@@ -52,12 +52,12 @@ UI displays constraint differences
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1 | Pending | Data layer - Extend EfModelColumnDto |
-| 2 | Pending | Service layer - Extract constraints from EF metadata |
-| 3 | Pending | ViewModel layer - Add ConstraintMismatch status |
-| 4 | Pending | Comparison logic - Add constraint comparison |
-| 5 | Pending | Controller layer - Update JSON response |
-| 6 | Pending | UI layer - Display constraint mismatches |
+| 1 | Complete | Data layer - Extend EfModelColumnDto |
+| 2 | Complete | Service layer - Extract constraints from EF metadata |
+| 3 | Complete | ViewModel layer - Add ConstraintMismatch status |
+| 4 | Complete | Comparison logic - Add constraint comparison |
+| 5 | Complete | Controller layer - Update JSON response |
+| 6 | Complete | UI layer - Display constraint mismatches |
 
 ## Key Design Decisions
 
@@ -68,4 +68,8 @@ UI displays constraint differences
    - EF `MaxLength = null` with DB `MaxLength = -1` (MAX) treated as match
    - EF without Precision/Scale uses convention defaults (may differ from DB)
 
-3. **Visual Distinction**: Purple badge color for constraint mismatches
+3. **Special Type Handling**:
+   - **Unicode strings (NVARCHAR, NCHAR, NTEXT)**: SQL Server stores `max_length` in bytes (2 per character); divide by 2 for accurate comparison with EF Core's character count
+   - **MONEY/SMALLMONEY types**: Skip precision/scale comparison since these have fixed precision (19,4 / 10,4) that cannot be configured in EF Core Fluent API
+
+4. **Visual Distinction**: Purple badge color for constraint mismatches

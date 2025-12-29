@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetSqlDataDicV2.Web.Models.Dto;
@@ -75,6 +76,13 @@ public class EfModelService : IEfModelService
             _logger.LogDebug("Processing entity {Entity} -> {Schema}.{Table}",
                 entityType.ClrType.Name, schemaName, tableName);
 
+            // Get primary key properties for this entity
+            var primaryKey = entityType.FindPrimaryKey();
+            var primaryKeyPropertyNames = primaryKey?.Properties
+                .Select(p => p.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase)
+                ?? new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
             foreach (var property in entityType.GetProperties())
             {
                 // Skip shadow properties unless they map to columns
@@ -87,6 +95,20 @@ public class EfModelService : IEfModelService
                 if (string.IsNullOrEmpty(columnName))
                     continue;
 
+                // Extract precision and scale
+                var extractedPrecision = property.GetPrecision() is { } p ? (int?)p : null;
+                var extractedScale = property.GetScale() is { } s ? (int?)s : null;
+
+                // Fallback: parse from column type if not set via HasPrecision()
+                // This handles cases like .HasColumnType("decimal(8, 2)")
+                if (extractedPrecision == null || extractedScale == null)
+                {
+                    var columnType = property.GetColumnType();
+                    var parsed = ParsePrecisionScaleFromColumnType(columnType);
+                    extractedPrecision ??= parsed.Precision;
+                    extractedScale ??= parsed.Scale;
+                }
+
                 columns.Add(new EfModelColumnDto
                 {
                     EntityName = entityType.ClrType.Name,
@@ -96,7 +118,10 @@ public class EfModelService : IEfModelService
                     TableName = tableName,
                     ClrType = GetFriendlyTypeName(property.ClrType),
                     IsNullable = property.IsNullable,
-                    MaxLength = property.GetMaxLength()
+                    MaxLength = property.GetMaxLength(),
+                    Precision = extractedPrecision,
+                    Scale = extractedScale,
+                    IsPrimaryKey = primaryKeyPropertyNames.Contains(property.Name)
                 });
             }
         }
@@ -136,5 +161,29 @@ public class EfModelService : IEfModelService
         };
 
         return nullableUnderlying != null ? $"{friendlyName}?" : friendlyName;
+    }
+
+    /// <summary>
+    /// Parses precision and scale from column type strings like "decimal(8, 2)" or "numeric(18,4)".
+    /// Used as fallback when HasColumnType() is used instead of HasPrecision().
+    /// </summary>
+    private static (int? Precision, int? Scale) ParsePrecisionScaleFromColumnType(string? columnType)
+    {
+        if (string.IsNullOrEmpty(columnType)) return (null, null);
+
+        // Match patterns like "decimal(8,2)", "numeric(18, 4)", etc.
+        var match = Regex.Match(
+            columnType,
+            @"(?:decimal|numeric)\s*\(\s*(\d+)\s*,\s*(\d+)\s*\)",
+            RegexOptions.IgnoreCase);
+
+        if (match.Success &&
+            int.TryParse(match.Groups[1].Value, out var precision) &&
+            int.TryParse(match.Groups[2].Value, out var scale))
+        {
+            return (precision, scale);
+        }
+
+        return (null, null);
     }
 }

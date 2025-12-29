@@ -72,7 +72,9 @@ NetSqlDataDicV2/
 │   ├── simplification-phases/       # Simplification project specs
 │   ├── audit-trail-phases/          # Audit trail feature specs
 │   ├── notes-feature-phases/        # Notes feature specs
-│   └── skipped-tables-phases/       # Skipped tables feature specs
+│   ├── skipped-tables-phases/       # Skipped tables feature specs
+│   ├── sync-results-phases/         # Sync results feature specs
+│   └── constraint-comparison-phases/# Constraint comparison feature specs
 ├── src/
 │   └── NetSqlDataDicV2.Web/         # Main MVC Application
 │       ├── Controllers/
@@ -259,11 +261,14 @@ Stores source database connection information.
 #### ComparisonService
 - Compares DataElement list with EfModelColumn list
 - Detects tables entirely missing from DbContext (skipped tables)
+- Compares constraint metadata (MaxLength, IsNullable, Precision, Scale, IsPrimaryKey)
+- Handles special cases: Unicode string byte conversion, Money type precision exclusion
 - Produces comparison results:
-  - **Match**: Column exists in both with compatible types
+  - **Match**: Column exists in both with compatible types and constraints
   - **MissingInEfModel**: Column in DB but not in EF model (table IS in DbContext)
   - **MissingInDatabase**: Property in EF model but not in DB
-  - **TypeMismatch**: Types are incompatible
+  - **TypeMismatch**: Types are incompatible (takes precedence over constraint issues)
+  - **ConstraintMismatch**: Types match but constraints differ (MaxLength, Nullable, etc.)
   - **SkippedTables**: Tables in DB with no corresponding entity in DbContext
 
 ### 5.2 Type Mapping (SQL to CLR)
@@ -447,5 +452,24 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | Skipped Phase 2 | Service Layer (Table-Level Detection Logic) | Complete |
 | Skipped Phase 3 | Controller Layer (JSON Response Update) | Complete |
 | Skipped Phase 4 | UI Layer (Skipped Tables Section, DataTable) | Complete |
+
+### Sync Results Feature
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Sync Results Phase 1 | Data Layer (SyncResultsViewModel, SyncAuditItemViewModel) | Complete |
+| Sync Results Phase 2 | Service Layer (GetSyncResultsAsync Method) | Complete |
+| Sync Results Phase 3 | Controller Layer (Results Action) | Complete |
+| Sync Results Phase 4 | UI Layer (Results.cshtml with Summary + DataTable) | Complete |
+| Sync Results Phase 5 | Update Sync Page (View Results Buttons) | Complete |
+
+### Constraint Comparison Feature
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Constraint Phase 1 | Data Layer (EfModelColumnDto Extension) | Complete |
+| Constraint Phase 2 | Service Layer (Extract Constraints from EF Metadata) | Complete |
+| Constraint Phase 3 | ViewModel Layer (ConstraintMismatch Status) | Complete |
+| Constraint Phase 4 | Comparison Logic (CompareConstraints Method) | Complete |
+| Constraint Phase 5 | Controller Layer (JSON Response Update) | Complete |
+| Constraint Phase 6 | UI Layer (Purple Badge, Summary Card, Filter, Grid Column) | Complete |
 
 **Last Updated:** December 2024

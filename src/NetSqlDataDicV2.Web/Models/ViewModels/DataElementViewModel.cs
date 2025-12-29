@@ -20,6 +20,8 @@ public class DataElementViewModel
     public bool IsNullable { get; set; }
     public bool IsPrimaryKey { get; set; }
     public int? MaxLength { get; set; }
+    public int? Precision { get; set; }
+    public int? Scale { get; set; }
     public DateTime CreateTime { get; set; }
     public DateTime LastUpdateTime { get; set; }
     public DateTime? LastSyncTime { get; set; }
