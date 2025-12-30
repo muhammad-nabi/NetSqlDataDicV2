@@ -286,7 +286,7 @@ Detailed specs in `docs/08-logging-improvements/`.
 
 ## Unit Testing
 
-Comprehensive unit test infrastructure with 380 tests achieving ~60% code coverage.
+Comprehensive unit test infrastructure with 380 tests achieving ~39% line coverage (~57% when excluding untestable code like views, migrations, and bootstrap).
 
 | Phase | Status | Description |
 |-------|--------|-------------|

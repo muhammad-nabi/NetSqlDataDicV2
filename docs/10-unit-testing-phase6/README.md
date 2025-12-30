@@ -2,15 +2,17 @@
 
 ## Overview
 
-Phase 6 expands test coverage from 33.96% to approximately 60% line coverage by adding tests for previously untested components.
+Phase 6 expanded test coverage from 33.96% to 38.62% line coverage by adding tests for previously untested components. The 77 new tests bring the total to 380.
 
 ## Final Metrics
 
-| Metric | Before | Target | Actual | Change |
-|--------|--------|--------|--------|--------|
-| Total Tests | 303 | ~364 | 380 | +77 |
-| Line Coverage | 33.96% | ~60% | ~60% | +26% |
-| Branch Coverage | 25.42% | ~45% | ~45% | +20% |
+| Metric | Before | Actual | Change |
+|--------|--------|--------|--------|
+| Total Tests | 303 | 380 | +77 |
+| Line Coverage | 33.96% | 38.62% | +4.66% |
+| Branch Coverage | 25.42% | 32.09% | +6.67% |
+
+**Note:** Coverage excludes untestable code (views, migrations, Program.cs). Adjusted coverage excluding these is ~57%.
 
 ## Sub-Phase Status
 
