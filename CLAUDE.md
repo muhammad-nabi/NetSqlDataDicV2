@@ -35,7 +35,8 @@ dotnet ef database update <PreviousMigrationName>
 
 **Solution Structure:**
 - `src/NetSqlDataDicV2.Web` - ASP.NET Core MVC app (.NET 9) with Bootstrap 5 + DataTables
-- `tests/NetSqlDataDicV2.Tests` - xUnit tests
+- `tests/NetSqlDataDicV2.Tests` - xUnit tests with Moq & FluentAssertions
+  - `TestHelpers/` - Test infrastructure (TestDbContextFactory, TestDataBuilder)
 - `docs/` - Phase documentation (architecture.md, phase1-5 specs)
 
 **Data Flow:**
@@ -282,6 +283,43 @@ Enhanced application logging for observability, debugging, and performance monit
 - 5xx: `LogError`
 
 Detailed specs in `docs/08-logging-improvements/`.
+
+## Unit Testing
+
+Comprehensive unit test infrastructure targeting ~60% code coverage.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Infrastructure (Moq, FluentAssertions, EF InMemory, test helpers) |
+| 2 | Pending | Security services (DllValidatorService, ConnectionStringProtector) |
+| 3 | Pending | Core services (DataDictionaryService, ComparisonService, DatabaseSyncService) |
+| 4 | Pending | Controllers (DataDictionaryController, ComparisonController, EfModelSourcesController) |
+| 5 | Pending | Middleware (ExceptionHandlingMiddleware) |
+
+**Test Infrastructure:**
+- `TestDbContextFactory` - Creates isolated in-memory DbContext instances
+- `TestDataBuilder` - Builder pattern classes for test entities (DataElement, EfModelSource, SyncHistory, etc.)
+
+**Test Dependencies:**
+| Package | Version | Purpose |
+|---------|---------|---------|
+| Moq | 4.20.72 | Mocking framework |
+| FluentAssertions | 8.8.0 | Readable assertion syntax |
+| Microsoft.EntityFrameworkCore.InMemory | 9.0.0 | In-memory database for testing |
+
+**Running Tests:**
+```bash
+# Run all tests
+dotnet test
+
+# Run with coverage
+dotnet test --collect:"XPlat Code Coverage"
+
+# Run specific test class
+dotnet test --filter "FullyQualifiedName~DataDictionaryServiceTests"
+```
+
+Detailed specs in `docs/09-unit-testing-phases/`.
 
 ## Security Configuration
 
