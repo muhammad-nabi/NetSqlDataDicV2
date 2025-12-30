@@ -511,6 +511,138 @@ public class DllValidatorServiceTests
 
     #endregion
 
+    #region Boundary Tests
+
+    [Fact]
+    public void ValidateDll_FileSizeAtExactLimit_PassesSizeCheck()
+    {
+        // Arrange
+        _options.MaxFileSizeBytes = 1024; // 1 KB limit
+        var tempDir = Path.GetTempPath();
+        _options.AllowedDirectories = new List<string> { tempDir };
+        var service = CreateService();
+
+        var tempFile = Path.Combine(tempDir, $"exact_limit_{Guid.NewGuid()}.dll");
+
+        try
+        {
+            // Create a file exactly at the limit
+            File.WriteAllBytes(tempFile, new byte[1024]);
+
+            // Act
+            var result = service.ValidateDll(tempFile);
+
+            // Assert - should NOT fail on file size (may fail on assembly validation)
+            result.ErrorMessage.Should().NotContain("exceeds maximum");
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ValidateDll_FileSizeOneBytesOverLimit_FailsSizeCheck()
+    {
+        // Arrange
+        _options.MaxFileSizeBytes = 1024; // 1 KB limit
+        var tempDir = Path.GetTempPath();
+        _options.AllowedDirectories = new List<string> { tempDir };
+        var service = CreateService();
+
+        var tempFile = Path.Combine(tempDir, $"over_limit_{Guid.NewGuid()}.dll");
+
+        try
+        {
+            // Create a file 1 byte over the limit
+            File.WriteAllBytes(tempFile, new byte[1025]);
+
+            // Act
+            var result = service.ValidateDll(tempFile);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.ErrorMessage.Should().Contain("exceeds maximum");
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ValidateDll_EmptyFile_FailsAssemblyValidation()
+    {
+        // Arrange
+        var tempDir = Path.GetTempPath();
+        _options.AllowedDirectories = new List<string> { tempDir };
+        var service = CreateService();
+
+        var tempFile = Path.Combine(tempDir, $"empty_{Guid.NewGuid()}.dll");
+
+        try
+        {
+            // Create an empty file (0 bytes)
+            File.WriteAllBytes(tempFile, Array.Empty<byte>());
+
+            // Act
+            var result = service.ValidateDll(tempFile);
+
+            // Assert
+            result.IsValid.Should().BeFalse();
+            result.ErrorMessage.Should().Contain("not a valid .NET assembly");
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+                File.Delete(tempFile);
+        }
+    }
+
+    #endregion
+
+    #region Path Normalization Tests
+
+    [Fact]
+    public void IsPathAllowed_PathWithTrailingSlash_Normalizes()
+    {
+        // Arrange - allowed directory with trailing separator
+        var tempDir = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        _options.AllowedDirectories = new List<string> { tempDir + Path.DirectorySeparatorChar };
+        var service = CreateService();
+
+        // Path without trailing separator
+        var testPath = Path.Combine(tempDir, "test.dll");
+
+        // Act
+        var result = service.IsPathAllowed(testPath);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    [Fact]
+    public void IsPathAllowed_AllowedDirWithoutTrailingSlash_StillMatches()
+    {
+        // Arrange - allowed directory without trailing separator
+        var tempDir = Path.GetTempPath().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        _options.AllowedDirectories = new List<string> { tempDir };
+        var service = CreateService();
+
+        // Path in subdirectory
+        var testPath = Path.Combine(tempDir, "subdir", "test.dll");
+
+        // Act
+        var result = service.IsPathAllowed(testPath);
+
+        // Assert
+        result.Should().BeTrue();
+    }
+
+    #endregion
+
     #region Logging Verification Tests
 
     [Fact]

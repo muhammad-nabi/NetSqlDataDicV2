@@ -286,7 +286,7 @@ Detailed specs in `docs/08-logging-improvements/`.
 
 ## Unit Testing
 
-Comprehensive unit test infrastructure targeting ~60% code coverage.
+Comprehensive unit test infrastructure with 380 tests achieving ~60% code coverage.
 
 | Phase | Status | Description |
 |-------|--------|-------------|
@@ -295,6 +295,7 @@ Comprehensive unit test infrastructure targeting ~60% code coverage.
 | 3 | Complete | Core services (DataDictionaryService, ComparisonService, DatabaseSyncService, EfModelSourceService) |
 | 4 | Complete | Controllers (DataDictionaryController, ComparisonController, EfModelSourcesController) |
 | 5 | Complete | Middleware (ExceptionHandlingMiddleware) |
+| 6 | Complete | Coverage expansion (RequestLoggingMiddleware, SyncController, ErrorMessages, SecurityAuditService, EfModelService) |
 
 **Test Infrastructure:**
 - `TestDbContextFactory` - Creates isolated in-memory DbContext instances
@@ -319,9 +320,7 @@ dotnet test --collect:"XPlat Code Coverage"
 dotnet test --filter "FullyQualifiedName~DataDictionaryServiceTests"
 ```
 
-Detailed specs in `docs/09-unit-testing-phases/`.
-
-For additional coverage expansion (targeting 60%), see `docs/10-unit-testing-phase6/`.
+Detailed specs in `docs/09-unit-testing-phases/` and `docs/10-unit-testing-phase6/`.
 
 ## Security Configuration
 
