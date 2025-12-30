@@ -15,6 +15,7 @@ public class DbContextProviderFactory : IDbContextProviderFactory
     private readonly IDllValidatorService _dllValidator;
     private readonly IConnectionStringProtector _connectionStringProtector;
     private readonly ISecurityAuditService _auditService;
+    private readonly IDllShadowCopyService _shadowCopyService;
     private readonly ILogger<DbContextProviderFactory> _logger;
     private readonly ILogger<DynamicDllProvider> _dllProviderLogger;
 
@@ -25,6 +26,7 @@ public class DbContextProviderFactory : IDbContextProviderFactory
         IDllValidatorService dllValidator,
         IConnectionStringProtector connectionStringProtector,
         ISecurityAuditService auditService,
+        IDllShadowCopyService shadowCopyService,
         ILogger<DbContextProviderFactory> logger,
         ILogger<DynamicDllProvider> dllProviderLogger)
     {
@@ -32,6 +34,7 @@ public class DbContextProviderFactory : IDbContextProviderFactory
         _dllValidator = dllValidator;
         _connectionStringProtector = connectionStringProtector;
         _auditService = auditService;
+        _shadowCopyService = shadowCopyService;
         _logger = logger;
         _dllProviderLogger = dllProviderLogger;
     }
@@ -47,6 +50,7 @@ public class DbContextProviderFactory : IDbContextProviderFactory
                 _dllValidator,
                 _connectionStringProtector,
                 _auditService,
+                _shadowCopyService,
                 _dllProviderLogger),
             _ => throw new ArgumentException($"Unknown provider type: {source.ProviderType}")
         };

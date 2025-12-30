@@ -112,7 +112,8 @@ NetSqlDataDicV2/
 │       │   │   ├── IDbContextProviderFactory.cs
 │       │   │   ├── DbContextProviderFactory.cs
 │       │   │   ├── DynamicDllProvider.cs
-│       │   │   └── PluginLoadContext.cs
+│       │   │   ├── PluginLoadContext.cs
+│       │   │   └── DllShadowCopyService.cs  # Hot-reload support
 │       │   └── Security/               # DLL security services
 │       │       ├── IDllValidatorService.cs
 │       │       ├── DllValidatorService.cs
@@ -331,6 +332,7 @@ ComparisonController.CompareSource(sourceId)
        ├──► EfModelService.GetEfModelColumns(source) → List<EfModelColumnDto>
        │    │
        │    └──► DynamicDllProvider loads DbContext from DLL at runtime
+       │         (DLL shadow-copied first to enable hot-reload)
        │
        ▼
 ComparisonService.CompareAsync(sourceId)
@@ -420,6 +422,7 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | DLL Phase 4 | UI Layer | Complete |
 | DLL Phase 5 | Security | Complete |
 | DLL Phase 6 | Error Handling | Complete |
+| DLL Phase 7 | Shadow Copy (Hot-Reload) | Complete |
 
 ### Simplification Project
 | Phase | Description | Status |

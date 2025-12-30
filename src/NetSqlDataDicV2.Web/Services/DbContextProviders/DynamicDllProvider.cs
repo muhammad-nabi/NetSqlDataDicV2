@@ -17,6 +17,7 @@ public class DynamicDllProvider : IDbContextProvider
     private readonly IDllValidatorService _validator;
     private readonly IConnectionStringProtector _connectionStringProtector;
     private readonly ISecurityAuditService _auditService;
+    private readonly IDllShadowCopyService _shadowCopyService;
     private readonly ILogger<DynamicDllProvider> _logger;
     private PluginLoadContext? _loadContext;
     private bool _disposed;
@@ -25,11 +26,13 @@ public class DynamicDllProvider : IDbContextProvider
         IDllValidatorService validator,
         IConnectionStringProtector connectionStringProtector,
         ISecurityAuditService auditService,
+        IDllShadowCopyService shadowCopyService,
         ILogger<DynamicDllProvider> logger)
     {
         _validator = validator;
         _connectionStringProtector = connectionStringProtector;
         _auditService = auditService;
+        _shadowCopyService = shadowCopyService;
         _logger = logger;
     }
 
@@ -62,14 +65,27 @@ public class DynamicDllProvider : IDbContextProvider
         {
             _logger.LogInformation("Loading assembly from {Path}", assemblyPath);
 
-            // Create isolated load context
-            _loadContext = new PluginLoadContext(assemblyPath);
+            // Create shadow copy to enable hot-reload (allows original DLL to be updated while app runs)
+            string loadPath;
+            try
+            {
+                loadPath = _shadowCopyService.CreateShadowCopy(assemblyPath);
+                _logger.LogDebug("Using shadow copy at {ShadowPath}", loadPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Shadow copy failed, falling back to direct load of {Path}", assemblyPath);
+                loadPath = assemblyPath;
+            }
 
-            // Load the assembly
+            // Create isolated load context using the shadow copy path
+            _loadContext = new PluginLoadContext(loadPath);
+
+            // Load the assembly from shadow copy
             Assembly assembly;
             try
             {
-                assembly = _loadContext.LoadFromAssemblyPath(assemblyPath);
+                assembly = _loadContext.LoadFromAssemblyPath(loadPath);
             }
             catch (FileNotFoundException ex)
             {

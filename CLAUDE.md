@@ -114,6 +114,13 @@ Runtime loading of EF Core DbContexts from external DLLs for comparison without 
 | 4 | Complete | UI layer (management pages, comparison integration) |
 | 5 | Complete | Security & validation |
 | 6 | Complete | Error handling |
+| 7 | Complete | Shadow copy (hot-reload support) |
+
+**Hot-Reload Support:**
+- DLLs are shadow-copied to temp directory before loading
+- Original DLL can be updated while app is running
+- Changes reflected on next comparison without restart
+- Shadow copies cleaned up automatically
 
 Detailed specs in `docs/01-dll-loading-phases/`.
 

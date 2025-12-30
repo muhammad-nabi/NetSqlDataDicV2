@@ -36,6 +36,9 @@ builder.Services.AddScoped<IDllValidatorService, DllValidatorService>();
 builder.Services.AddScoped<IConnectionStringProtector, ConnectionStringProtector>();
 builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
 
+// Register shadow copy service (Singleton to track copies across requests for cleanup)
+builder.Services.AddSingleton<IDllShadowCopyService, DllShadowCopyService>();
+
 // Add DbContext for Data Dictionary
 builder.Services.AddDbContext<DataDictionaryDbContext>(options =>
     options.UseSqlServer(dataDictionaryConnectionString));
