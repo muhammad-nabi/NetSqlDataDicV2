@@ -291,10 +291,10 @@ Comprehensive unit test infrastructure targeting ~60% code coverage.
 | Phase | Status | Description |
 |-------|--------|-------------|
 | 1 | Complete | Infrastructure (Moq, FluentAssertions, EF InMemory, test helpers) |
-| 2 | Pending | Security services (DllValidatorService, ConnectionStringProtector) |
-| 3 | Pending | Core services (DataDictionaryService, ComparisonService, DatabaseSyncService) |
-| 4 | Pending | Controllers (DataDictionaryController, ComparisonController, EfModelSourcesController) |
-| 5 | Pending | Middleware (ExceptionHandlingMiddleware) |
+| 2 | Complete | Security services (DllValidatorService, ConnectionStringProtector) |
+| 3 | Complete | Core services (DataDictionaryService, ComparisonService, DatabaseSyncService, EfModelSourceService) |
+| 4 | Complete | Controllers (DataDictionaryController, ComparisonController, EfModelSourcesController) |
+| 5 | Complete | Middleware (ExceptionHandlingMiddleware) |
 
 **Test Infrastructure:**
 - `TestDbContextFactory` - Creates isolated in-memory DbContext instances
@@ -320,6 +320,8 @@ dotnet test --filter "FullyQualifiedName~DataDictionaryServiceTests"
 ```
 
 Detailed specs in `docs/09-unit-testing-phases/`.
+
+For additional coverage expansion (targeting 60%), see `docs/10-unit-testing-phase6/`.
 
 ## Security Configuration
 
