@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,19 +26,32 @@ public class EfModelService : IEfModelService
     /// </summary>
     public List<EfModelColumnDto> GetEfModelColumns(EfModelSource source)
     {
+        var stopwatch = Stopwatch.StartNew();
         _logger.LogInformation("Getting EF model columns for source: {Name}", source.Name);
 
         using var provider = _providerFactory.GetProvider(source);
         using var result = provider.GetDbContext(source);
 
+        var loadMs = stopwatch.ElapsedMilliseconds;
+
         if (!result.Success || result.Context == null)
         {
-            _logger.LogError("Failed to get DbContext: {Error}", result.ErrorMessage);
+            _logger.LogError("Failed to get DbContext after {LoadMs}ms: {Error}", loadMs, result.ErrorMessage);
             throw new InvalidOperationException(
                 $"Failed to load DbContext for source '{source.Name}': {result.ErrorMessage}");
         }
 
-        return ExtractColumnsFromContext(result.Context);
+        _logger.LogDebug("DbContext loaded in {LoadMs}ms for source {SourceName}", loadMs, source.Name);
+
+        var columns = ExtractColumnsFromContext(result.Context);
+
+        stopwatch.Stop();
+        _logger.LogInformation(
+            "EF model extraction completed for {SourceName} in {ElapsedMs}ms: {ColumnCount} columns from {EntityCount} entities",
+            source.Name, stopwatch.ElapsedMilliseconds, columns.Count,
+            columns.Select(c => c.EntityName).Distinct().Count());
+
+        return columns;
     }
 
     /// <summary>
@@ -125,8 +139,6 @@ public class EfModelService : IEfModelService
                 });
             }
         }
-
-        _logger.LogInformation("Extracted {Count} columns from DbContext model", columns.Count);
 
         return columns;
     }

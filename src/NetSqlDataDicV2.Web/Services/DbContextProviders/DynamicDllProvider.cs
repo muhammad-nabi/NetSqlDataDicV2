@@ -74,7 +74,10 @@ public class DynamicDllProvider : IDbContextProvider
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Shadow copy failed, falling back to direct load of {Path}", assemblyPath);
+                _logger.LogWarning(ex,
+                    "Shadow copy failed for {Path}. Falling back to direct load. " +
+                    "Hot-reload will not work for this DLL until the application restarts",
+                    assemblyPath);
                 loadPath = assemblyPath;
             }
 

@@ -8,9 +8,9 @@ Medium-effort improvements that significantly enhance observability, debugging, 
 
 | Item | Status |
 |------|--------|
-| 2.1 Request/Response logging middleware | Pending |
-| 2.2 Controller success logging | Pending |
-| 2.3 Performance timing for services | Pending |
+| 2.1 Request/Response logging middleware | Complete |
+| 2.2 Controller success logging | Complete |
+| 2.3 Performance timing for services | Complete |
 
 ---
 
@@ -141,121 +141,60 @@ Controllers only log errors. No visibility into successful operations.
 
 | File | Actions to Log |
 |------|----------------|
-| `Controllers/SyncController.cs` | Sync execution, Results viewed |
+| `Controllers/SyncController.cs` | Sync execution |
 | `Controllers/ComparisonController.cs` | Compare execution |
 | `Controllers/DataDictionaryController.cs` | Update, Note added, CSV export |
-| `Controllers/EfModelSourcesController.cs` | Create, Edit, Delete |
+| `Controllers/EfModelSourcesController.cs` | Create, Edit, Delete, ToggleActive |
 
 ### Implementation
 
 **SyncController.cs - After successful sync:**
 
 ```csharp
-[HttpPost]
-public async Task<IActionResult> Execute(...)
-{
-    // ... existing code ...
-
-    var result = await _syncService.SyncDatabaseAsync(...);
-
-    _logger.LogInformation(
-        "Sync executed for {Server}/{Database}: {Added} added, {Modified} modified, {Deleted} deleted",
-        model.ServerName, model.DatabaseName,
-        result.Added, result.Modified, result.Deleted);
-
-    return RedirectToAction("Results", new { id = result.SyncHistoryId });
-}
+_logger.LogInformation(
+    "Sync executed for {Server}/{Database}: {Added} added, {Updated} updated, {Removed} deleted in {Duration:F1}s",
+    serverName, databaseName,
+    result.ColumnsAdded, result.ColumnsUpdated, result.ColumnsRemoved,
+    result.Duration.TotalSeconds);
 ```
 
 **ComparisonController.cs - After comparison:**
 
 ```csharp
-[HttpPost]
-public async Task<IActionResult> Compare(int sourceId)
-{
-    // ... existing code ...
-
-    var result = await _efModelService.CompareAsync(sourceId);
-
-    _logger.LogInformation(
-        "Comparison executed for source {SourceId}: {Total} columns, {Matches} matches, {Mismatches} mismatches",
-        sourceId, result.TotalColumns, result.Matches, result.Mismatches);
-
-    return Json(result);
-}
+_logger.LogInformation(
+    "Comparison executed for source {SourceId}: {Total} items, {Matches} matches, {MissingInEf} missing in EF, {TypeMismatches} type mismatches",
+    sourceId, result.TotalItems, result.TotalMatches, result.TotalMissingInEf, result.TotalTypeMismatches);
 ```
 
-**DataDictionaryController.cs - For updates:**
+**DataDictionaryController.cs - For updates, notes, and CSV export:**
 
 ```csharp
-[HttpPost]
-public async Task<IActionResult> Update(...)
-{
-    // ... existing code ...
+// Update
+_logger.LogInformation("DataElement {Id} updated successfully", model.DataElementId);
 
-    await _service.UpdateAsync(viewModel);
+// AddNote
+_logger.LogInformation("Note added to DataElement {Id}", model.DataElementId);
 
-    _logger.LogInformation(
-        "DataElement {Id} updated: {Server}/{Database}.{Schema}.{Table}.{Column}",
-        id, viewModel.DatabaseServer, viewModel.DatabaseName,
-        viewModel.SchemaName, viewModel.TableName, viewModel.ColumnName);
-
-    return RedirectToAction("Details", new { id });
-}
-
-[HttpPost]
-public async Task<IActionResult> AddNote(int id, string noteText)
-{
-    // ... existing code ...
-
-    await _service.AddNoteAsync(id, noteText);
-
-    _logger.LogInformation("Note added to DataElement {Id}", id);
-
-    return RedirectToAction("Details", new { id });
-}
-
-public async Task<IActionResult> ExportCsv(...)
-{
-    // ... existing code ...
-
-    _logger.LogInformation(
-        "CSV export generated: {RowCount} rows, filters: Server={Server}, Database={Database}",
-        data.Count(), serverFilter ?? "all", databaseFilter ?? "all");
-
-    return File(csvBytes, "text/csv", "data-dictionary-export.csv");
-}
+// ExportCsv
+_logger.LogInformation(
+    "CSV export generated: {RowCount} rows, filters: Server={Server}, Database={Database}",
+    data.Count(), server ?? "all", database ?? "all");
 ```
 
-**EfModelSourcesController.cs - For CRUD:**
+**EfModelSourcesController.cs - For CRUD operations:**
 
 ```csharp
-[HttpPost]
-public async Task<IActionResult> Create(...)
-{
-    // ... existing code ...
+// Create
+_logger.LogInformation("EF Model Source created: {Name} ({DllPath})", model.Name, model.AssemblyPath);
 
-    await _service.CreateAsync(model);
+// Edit
+_logger.LogInformation("EF Model Source updated: {Id} ({Name})", id, model.Name);
 
-    _logger.LogInformation("EF Model Source created: {Name} ({DllPath})",
-        model.Name, model.DllPath);
+// Delete
+_logger.LogInformation("EF Model Source deleted: {Id}", id);
 
-    return RedirectToAction("Index");
-}
-
-[HttpPost]
-public async Task<IActionResult> Delete(int id)
-{
-    var source = await _service.GetByIdAsync(id);
-    // ... existing code ...
-
-    await _service.DeleteAsync(id);
-
-    _logger.LogInformation("EF Model Source deleted: {Id} ({Name})",
-        id, source?.Name ?? "unknown");
-
-    return RedirectToAction("Index");
-}
+// ToggleActive
+_logger.LogInformation("EF Model Source {Id} toggled to {Status}", id, newStatus ? "active" : "inactive");
 ```
 
 ### Testing
@@ -285,95 +224,79 @@ No visibility into how long critical operations take. Can't identify performance
 
 ### Implementation
 
-**DatabaseSyncService.cs:**
+**DatabaseSyncService.cs - Phase-by-phase timing:**
 
 ```csharp
-using System.Diagnostics;
+var totalStopwatch = Stopwatch.StartNew();
+var phaseStopwatch = Stopwatch.StartNew();
 
-public async Task<SyncResult> SyncDatabaseAsync(...)
-{
-    var totalStopwatch = Stopwatch.StartNew();
-    var phaseStopwatch = new Stopwatch();
+// Phase 1: Discovery
+var sourceColumns = await DiscoverColumnsAsync(connectionString, cancellationToken);
+var discoveryMs = phaseStopwatch.ElapsedMilliseconds;
+phaseStopwatch.Restart();
 
-    // Phase 1: Discovery
-    phaseStopwatch.Start();
-    var sourceColumns = await DiscoverSourceColumnsAsync(connectionString);
-    phaseStopwatch.Stop();
-    var discoveryMs = phaseStopwatch.ElapsedMilliseconds;
+// Phase 2: Compare and process changes
+// ... comparison logic ...
+var compareMs = phaseStopwatch.ElapsedMilliseconds;
+phaseStopwatch.Restart();
 
-    // Phase 2: Comparison
-    phaseStopwatch.Restart();
-    var changes = CompareWithExisting(sourceColumns, existingColumns);
-    phaseStopwatch.Stop();
-    var comparisonMs = phaseStopwatch.ElapsedMilliseconds;
+// Phase 3: Save
+await _context.SaveChangesAsync(cancellationToken);
+var saveMs = phaseStopwatch.ElapsedMilliseconds;
+phaseStopwatch.Restart();
 
-    // Phase 3: Save
-    phaseStopwatch.Restart();
-    await SaveChangesAsync(changes);
-    phaseStopwatch.Stop();
-    var saveMs = phaseStopwatch.ElapsedMilliseconds;
+// Phase 4: Update sync history
+await _context.SaveChangesAsync(cancellationToken);
+var auditMs = phaseStopwatch.ElapsedMilliseconds;
+totalStopwatch.Stop();
 
-    // Phase 4: Audit
-    phaseStopwatch.Restart();
-    await CreateAuditRecordsAsync(changes, syncHistoryId);
-    phaseStopwatch.Stop();
-    var auditMs = phaseStopwatch.ElapsedMilliseconds;
-
-    totalStopwatch.Stop();
-
-    _logger.LogInformation(
-        "Sync completed for {Server}/{Database} in {TotalMs}ms " +
-        "(Discovery: {DiscoveryMs}ms, Compare: {CompareMs}ms, Save: {SaveMs}ms, Audit: {AuditMs}ms). " +
-        "Results: {Added} added, {Modified} modified, {Deleted} deleted",
-        serverName, databaseName,
-        totalStopwatch.ElapsedMilliseconds, discoveryMs, comparisonMs, saveMs, auditMs,
-        result.Added, result.Modified, result.Deleted);
-
-    return result;
-}
+_logger.LogInformation(
+    "Sync completed for {Server}/{Database} in {TotalMs}ms " +
+    "(Discovery: {DiscoveryMs}ms, Compare: {CompareMs}ms, Save: {SaveMs}ms, Audit: {AuditMs}ms). " +
+    "Results: {Added} added, {Updated} updated, {Removed} removed",
+    serverName, databaseName, totalStopwatch.ElapsedMilliseconds,
+    discoveryMs, compareMs, saveMs, auditMs,
+    added, updated, removed);
 ```
 
-**EfModelService.cs:**
+**EfModelService.cs - DbContext loading and extraction timing:**
 
 ```csharp
-public async Task<ComparisonResult> CompareAsync(int sourceId)
-{
-    var stopwatch = Stopwatch.StartNew();
+var stopwatch = Stopwatch.StartNew();
 
-    // ... existing code ...
+using var provider = _providerFactory.GetProvider(source);
+using var result = provider.GetDbContext(source);
+var loadMs = stopwatch.ElapsedMilliseconds;
 
-    var loadMs = stopwatch.ElapsedMilliseconds;
-    _logger.LogDebug("DbContext loaded in {LoadMs}ms for source {SourceId}", loadMs, sourceId);
+_logger.LogDebug("DbContext loaded in {LoadMs}ms for source {SourceName}", loadMs, source.Name);
 
-    // ... comparison logic ...
+var columns = ExtractColumnsFromContext(result.Context);
 
-    stopwatch.Stop();
-    _logger.LogInformation(
-        "EF comparison completed for source {SourceId} ({SourceName}) in {ElapsedMs}ms. " +
-        "Columns: {Total}, Matches: {Matches}, Mismatches: {Mismatches}, Skipped Tables: {Skipped}",
-        sourceId, source.Name, stopwatch.ElapsedMilliseconds,
-        result.TotalColumns, result.Matches, result.Mismatches, result.SkippedTables);
-
-    return result;
-}
+stopwatch.Stop();
+_logger.LogInformation(
+    "EF model extraction completed for {SourceName} in {ElapsedMs}ms: {ColumnCount} columns from {EntityCount} entities",
+    source.Name, stopwatch.ElapsedMilliseconds, columns.Count,
+    columns.Select(c => c.EntityName).Distinct().Count());
 ```
 
-**ComparisonService.cs:**
+**ComparisonService.cs - Total comparison timing:**
 
 ```csharp
-public async Task<IEnumerable<ColumnComparisonResult>> CompareAsync(...)
-{
-    var stopwatch = Stopwatch.StartNew();
+var totalStopwatch = Stopwatch.StartNew();
 
-    // ... existing code ...
+// ... comparison logic ...
 
-    stopwatch.Stop();
-    _logger.LogInformation(
-        "Comparison completed in {ElapsedMs}ms: {TotalColumns} columns compared",
-        stopwatch.ElapsedMilliseconds, results.Count());
+totalStopwatch.Stop();
 
-    return results;
-}
+_logger.LogInformation(
+    "Comparison completed for {SourceName} in {ElapsedMs}ms: " +
+    "{Matches} matches, {MissingEf} missing in EF, {MissingDb} missing in DB, " +
+    "{TypeMismatches} type mismatches, {ConstraintMismatches} constraint mismatches, " +
+    "{SkippedTables} skipped tables ({SkippedColumns} columns)",
+    source.Name, totalStopwatch.ElapsedMilliseconds,
+    result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb,
+    result.TotalTypeMismatches, result.TotalConstraintMismatches,
+    result.TotalSkippedTables, result.TotalSkippedColumns);
 ```
 
 ### Example Output
@@ -413,10 +336,10 @@ info: EfModelService[0]
 
 ## Completion Criteria
 
-- [ ] Request logging middleware created and registered
-- [ ] All HTTP requests logged with method, path, query, status, duration
-- [ ] Controllers log successful POST/PUT/DELETE operations
-- [ ] Sync operations log phase-by-phase timing breakdown
-- [ ] Comparison operations log total duration and results
-- [ ] All existing tests pass
-- [ ] Log output is clean and not excessively verbose
+- [x] Request logging middleware created and registered
+- [x] All HTTP requests logged with method, path, query, status, duration
+- [x] Controllers log successful POST/PUT/DELETE operations
+- [x] Sync operations log phase-by-phase timing breakdown
+- [x] Comparison operations log total duration and results
+- [x] All existing tests pass
+- [x] Log output is clean and not excessively verbose

@@ -52,6 +52,10 @@ public class ComparisonController : Controller
         {
             var result = await _comparisonService.CompareAsync(sourceId, cancellationToken);
 
+            _logger.LogInformation(
+                "Comparison executed for source {SourceId}: {Total} items, {Matches} matches, {MissingInEf} missing in EF, {TypeMismatches} type mismatches",
+                sourceId, result.TotalItems, result.TotalMatches, result.TotalMissingInEf, result.TotalTypeMismatches);
+
             return Json(new
             {
                 success = true,

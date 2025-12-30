@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using NetSqlDataDicV2.Web.Data;
@@ -42,14 +43,20 @@ public class DatabaseSyncService : IDatabaseSyncService
 
         try
         {
+            var totalStopwatch = Stopwatch.StartNew();
+            var phaseStopwatch = Stopwatch.StartNew();
+
             _logger.LogInformation("Starting sync for {Server}/{Database}", serverName, databaseName);
 
-            // Discover columns from source database
+            // Phase 1: Discover columns from source database
             var sourceColumns = await DiscoverColumnsAsync(connectionString, cancellationToken);
+            var discoveryMs = phaseStopwatch.ElapsedMilliseconds;
+            phaseStopwatch.Restart();
 
-            _logger.LogInformation("Discovered {Count} columns from source", sourceColumns.Count);
+            _logger.LogDebug("Discovery completed in {DiscoveryMs}ms - found {Count} columns",
+                discoveryMs, sourceColumns.Count);
 
-            // Get existing entries (including soft-deleted for potential restore)
+            // Phase 2: Get existing entries (including soft-deleted for potential restore)
             var existingEntries = await _context.DataElements
                 .IgnoreQueryFilters()
                 .Where(e => e.DatabaseServer == serverName && e.DatabaseName == databaseName)
@@ -184,7 +191,13 @@ public class DatabaseSyncService : IDatabaseSyncService
             // Add all audit records
             _context.DataElementAudits.AddRange(auditRecords);
 
+            var compareMs = phaseStopwatch.ElapsedMilliseconds;
+            phaseStopwatch.Restart();
+
             await _context.SaveChangesAsync(cancellationToken);
+
+            var saveMs = phaseStopwatch.ElapsedMilliseconds;
+            phaseStopwatch.Restart();
 
             // Update sync history
             syncHistory.SyncEndTime = DateTime.UtcNow;
@@ -197,9 +210,16 @@ public class DatabaseSyncService : IDatabaseSyncService
 
             await _context.SaveChangesAsync(cancellationToken);
 
+            var auditMs = phaseStopwatch.ElapsedMilliseconds;
+            totalStopwatch.Stop();
+
             _logger.LogInformation(
-                "Sync completed for {Server}/{Database}: {Added} added, {Updated} updated, {Removed} removed",
-                serverName, databaseName, added, updated, removed);
+                "Sync completed for {Server}/{Database} in {TotalMs}ms " +
+                "(Discovery: {DiscoveryMs}ms, Compare: {CompareMs}ms, Save: {SaveMs}ms, Audit: {AuditMs}ms). " +
+                "Results: {Added} added, {Updated} updated, {Removed} removed",
+                serverName, databaseName, totalStopwatch.ElapsedMilliseconds,
+                discoveryMs, compareMs, saveMs, auditMs,
+                added, updated, removed);
 
             return new SyncResultViewModel
             {

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using NetSqlDataDicV2.Web.Models.Dto;
 using NetSqlDataDicV2.Web.Models.ViewModels;
 
@@ -60,6 +61,8 @@ public class ComparisonService : IComparisonService
         int sourceId,
         CancellationToken cancellationToken = default)
     {
+        var totalStopwatch = Stopwatch.StartNew();
+
         var source = await _sourceService.GetByIdAsync(sourceId, cancellationToken);
 
         if (source == null)
@@ -243,12 +246,17 @@ public class ComparisonService : IComparisonService
         // Update last compared timestamp
         await _sourceService.UpdateLastComparedAsync(sourceId, cancellationToken);
 
+        totalStopwatch.Stop();
+
         _logger.LogInformation(
-            "Comparison complete (source {Source}): {Matches} matches, {MissingEf} missing in EF, " +
-            "{MissingDb} missing in DB, {TypeMismatches} type mismatches, {ConstraintMismatches} constraint mismatches, " +
+            "Comparison completed for {SourceName} in {ElapsedMs}ms: " +
+            "{Matches} matches, {MissingEf} missing in EF, {MissingDb} missing in DB, " +
+            "{TypeMismatches} type mismatches, {ConstraintMismatches} constraint mismatches, " +
             "{SkippedTables} skipped tables ({SkippedColumns} columns)",
-            source.Name, result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb,
-            result.TotalTypeMismatches, result.TotalConstraintMismatches, result.TotalSkippedTables, result.TotalSkippedColumns);
+            source.Name, totalStopwatch.ElapsedMilliseconds,
+            result.TotalMatches, result.TotalMissingInEf, result.TotalMissingInDb,
+            result.TotalTypeMismatches, result.TotalConstraintMismatches,
+            result.TotalSkippedTables, result.TotalSkippedColumns);
 
         return result;
     }

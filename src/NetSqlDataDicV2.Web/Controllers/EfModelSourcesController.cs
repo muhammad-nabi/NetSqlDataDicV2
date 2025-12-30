@@ -74,6 +74,9 @@ public class EfModelSourcesController : Controller
         try
         {
             await _sourceService.CreateAsync(model, ct);
+
+            _logger.LogInformation("EF Model Source created: {Name} ({DllPath})", model.Name, model.AssemblyPath);
+
             TempData["SuccessMessage"] = $"Source '{model.Name}' created successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -138,6 +141,9 @@ public class EfModelSourcesController : Controller
         try
         {
             await _sourceService.UpdateAsync(id, model, ct);
+
+            _logger.LogInformation("EF Model Source updated: {Id} ({Name})", id, model.Name);
+
             TempData["SuccessMessage"] = $"Source '{model.Name}' updated successfully.";
             return RedirectToAction(nameof(Index));
         }
@@ -160,6 +166,9 @@ public class EfModelSourcesController : Controller
         try
         {
             await _sourceService.DeleteAsync(id, ct);
+
+            _logger.LogInformation("EF Model Source deleted: {Id}", id);
+
             return Json(new { success = true, message = "Source deleted successfully." });
         }
         catch (ArgumentException ex)
@@ -182,6 +191,9 @@ public class EfModelSourcesController : Controller
         try
         {
             var newStatus = await _sourceService.ToggleActiveAsync(id, ct);
+
+            _logger.LogInformation("EF Model Source {Id} toggled to {Status}", id, newStatus ? "active" : "inactive");
+
             return Json(new { success = true, isActive = newStatus });
         }
         catch (Exception ex)

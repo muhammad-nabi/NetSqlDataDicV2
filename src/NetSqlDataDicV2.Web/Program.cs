@@ -62,7 +62,9 @@ builder.Services.AddScoped<IComparisonService, ComparisonService>();
 var app = builder.Build();
 
 // Configure pipeline
-// Add global exception handling middleware first
+// Add request logging first to capture all requests including errors
+app.UseMiddleware<RequestLoggingMiddleware>();
+// Add global exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (!app.Environment.IsDevelopment())

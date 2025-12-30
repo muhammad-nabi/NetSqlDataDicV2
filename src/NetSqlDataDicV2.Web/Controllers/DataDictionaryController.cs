@@ -118,6 +118,9 @@ public class DataDictionaryController : Controller
             };
 
             var updated = await _service.UpdateAsync(updateModel);
+
+            _logger.LogInformation("DataElement {Id} updated successfully", model.DataElementId);
+
             return Json(new { success = true, data = updated });
         }
         catch (Exception ex)
@@ -154,6 +157,9 @@ public class DataDictionaryController : Controller
         try
         {
             var note = await _service.AddNoteAsync(model.DataElementId, model.NoteText, ct);
+
+            _logger.LogInformation("Note added to DataElement {Id}", model.DataElementId);
+
             return Json(new { success = true, data = note });
         }
         catch (InvalidOperationException ex)
@@ -279,6 +285,11 @@ public class DataDictionaryController : Controller
         }
 
         var bytes = Encoding.UTF8.GetBytes(csv.ToString());
+
+        _logger.LogInformation(
+            "CSV export generated: {RowCount} rows, filters: Server={Server}, Database={Database}",
+            data.Count(), server ?? "all", database ?? "all");
+
         return File(bytes, "text/csv", $"data-dictionary-{DateTime.Now:yyyyMMdd-HHmmss}.csv");
     }
 

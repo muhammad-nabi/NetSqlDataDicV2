@@ -8,9 +8,9 @@ Low-effort improvements that provide immediate value with minimal risk.
 
 | Item | Status |
 |------|--------|
-| 1.1 Fix HomeController unused logger | Pending |
-| 1.2 Enable EF Core SQL logging | Pending |
-| 1.3 Improve shadow copy warning | Pending |
+| 1.1 Fix HomeController unused logger | Complete |
+| 1.2 Enable EF Core SQL logging | Complete |
+| 1.3 Improve shadow copy warning | Complete |
 
 ---
 
@@ -171,31 +171,27 @@ When shadow copy fails, the code falls back to loading the original DLL directly
 
 ### File
 
-`src/NetSqlDataDicV2.Web/Services/DLL/DllShadowCopyService.cs`
+`src/NetSqlDataDicV2.Web/Services/DbContextProviders/DynamicDllProvider.cs`
 
-### Current Code
+### Previous Code
 
 ```csharp
 catch (Exception ex)
 {
-    _logger.LogWarning(ex, "Shadow copy failed for {Path}. Using original file.", assemblyPath);
+    _logger.LogWarning(ex, "Shadow copy failed, falling back to direct load of {Path}", assemblyPath);
     loadPath = assemblyPath;
 }
 ```
 
-### Implementation
-
-Enhance the warning message to be more actionable:
+### Implemented Code
 
 ```csharp
 catch (Exception ex)
 {
     _logger.LogWarning(ex,
         "Shadow copy failed for {Path}. Falling back to direct load. " +
-        "Hot-reload will not work for this DLL until the application restarts. " +
-        "Reason: {Reason}",
-        assemblyPath,
-        ex.Message);
+        "Hot-reload will not work for this DLL until the application restarts",
+        assemblyPath);
     loadPath = assemblyPath;
 }
 ```
@@ -221,12 +217,12 @@ catch (Exception ex)
 |------|-------------|------|
 | `Controllers/HomeController.cs` | Remove unused field | Very Low |
 | `appsettings.Development.json` | Add config entry | Very Low |
-| `Services/DLL/DllShadowCopyService.cs` | Enhance log message | Very Low |
+| `Services/DbContextProviders/DynamicDllProvider.cs` | Enhance log message | Very Low |
 
 ## Completion Criteria
 
-- [ ] HomeController has no unused logger injection
-- [ ] EF Core SQL statements appear in Development logs
-- [ ] Shadow copy fallback warning includes hot-reload impact
-- [ ] All existing tests pass
-- [ ] Application builds successfully
+- [x] HomeController has no unused logger injection
+- [x] EF Core SQL statements appear in Development logs
+- [x] Shadow copy fallback warning includes hot-reload impact
+- [x] All existing tests pass
+- [x] Application builds successfully

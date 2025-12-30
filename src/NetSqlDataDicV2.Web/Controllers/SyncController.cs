@@ -50,6 +50,12 @@ public class SyncController : Controller
                 databaseName,
                 cancellationToken);
 
+            _logger.LogInformation(
+                "Sync executed for {Server}/{Database}: {Added} added, {Updated} updated, {Removed} deleted in {Duration:F1}s",
+                serverName, databaseName,
+                result.ColumnsAdded, result.ColumnsUpdated, result.ColumnsRemoved,
+                result.Duration.TotalSeconds);
+
             return Json(new
             {
                 success = result.Success,

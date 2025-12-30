@@ -258,6 +258,31 @@ Compares EF Core model constraints against Data Dictionary values for MaxLength,
 
 Detailed specs in `docs/07-constraint-comparison-phases/`.
 
+## Logging Improvements
+
+Enhanced application logging for observability, debugging, and performance monitoring.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Quick wins (unused logger fix, EF SQL logging, shadow copy warning) |
+| 2 | Complete | Operational visibility (request middleware, success logging, timing) |
+| 3 | Pending | User context & audit (requires authentication) |
+
+**Key Features:**
+- `RequestLoggingMiddleware` - Logs all HTTP requests with method, path, query, status, duration
+- Controller success logging for sync, comparison, CRUD operations
+- Phase-by-phase performance timing in `DatabaseSyncService`
+- DbContext load timing in `EfModelService`
+- Comparison timing in `ComparisonService`
+- EF Core SQL query logging in Development mode
+
+**Log Levels by Status Code:**
+- 2xx/3xx: `LogInformation`
+- 4xx: `LogWarning`
+- 5xx: `LogError`
+
+Detailed specs in `docs/08-logging-improvements/`.
+
 ## Security Configuration
 
 DLL loading security is configured in `appsettings.json` under `DllSecurity`:
