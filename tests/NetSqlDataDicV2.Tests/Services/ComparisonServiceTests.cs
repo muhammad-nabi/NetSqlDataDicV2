@@ -1,6 +1,4 @@
 using Microsoft.Extensions.Logging;
-using NetSqlDataDicV2.Web.Models.Dto;
-using NetSqlDataDicV2.Web.Models.Entities;
 
 namespace NetSqlDataDicV2.Tests.Services;
 

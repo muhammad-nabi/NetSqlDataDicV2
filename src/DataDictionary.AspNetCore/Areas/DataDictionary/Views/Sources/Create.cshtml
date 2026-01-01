@@ -1,0 +1,185 @@
+@model DataDictionary.AspNetCore.Core.Models.ViewModels.EfModelSourceCreateViewModel
+@{
+    ViewData["Title"] = "Add EF Model Source";
+    var providerTypes = ViewBag.ProviderTypes as List<string> ?? new List<string>();
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-area="DataDictionary" asp-controller="Sources" asp-action="Index">EF Model Sources</a></li>
+            <li class="breadcrumb-item active">Add New</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header">
+            <h4 class="mb-0">Add EF Model Source</h4>
+        </div>
+        <div class="card-body">
+            <form asp-area="DataDictionary" asp-controller="Sources" asp-action="Create" method="post">
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" placeholder="e.g., Sales API DbContext" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ProviderType" class="form-label"></label>
+                        <select asp-for="ProviderType" class="form-select" id="ProviderType" onchange="onProviderTypeChange()">
+                            @foreach (var pt in providerTypes)
+                            {
+                                <option value="@pt" selected="@(Model.ProviderType == pt)">@pt</option>
+                            }
+                        </select>
+                        <span asp-validation-for="ProviderType" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div id="dynamicDllFields">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label asp-for="AssemblyPath" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="AssemblyPath" class="form-control"
+                                    placeholder="e.g., C:\Projects\MyApp\bin\Debug\net9.0\MyApp.dll" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="discoverDbContexts()">
+                                    Discover
+                                </button>
+                            </div>
+                            <span asp-validation-for="AssemblyPath" class="text-danger"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="DbContextTypeName" class="form-label"></label>
+                            <select asp-for="DbContextTypeName" class="form-select" id="DbContextTypeName" disabled>
+                                <option value="">-- Select DbContext --</option>
+                            </select>
+                            <span asp-validation-for="DbContextTypeName" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div id="discoveryResults" class="mb-3" style="display: none;">
+                        <div class="alert alert-info">
+                            <strong>Discovered DbContexts:</strong>
+                            <ul id="discoveryList" class="mb-0 mt-2"></ul>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label asp-for="ConnectionString" class="form-label"></label>
+                            <input asp-for="ConnectionString" class="form-control"
+                                placeholder="Connection string for DbContext instantiation (optional)" />
+                            <small class="text-muted">Required if DbContext doesn't have a parameterless constructor</small>
+                            <span asp-validation-for="ConnectionString" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h5>Target Database (for comparison)</h5>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="TargetServer" class="form-label"></label>
+                        <input asp-for="TargetServer" class="form-control" placeholder="e.g., localhost" />
+                        <span asp-validation-for="TargetServer" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="TargetDatabase" class="form-label"></label>
+                        <input asp-for="TargetDatabase" class="form-control" placeholder="e.g., AdventureWorks" />
+                        <span asp-validation-for="TargetDatabase" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="2"
+                            placeholder="Optional description"></textarea>
+                        <span asp-validation-for="Description" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-area="DataDictionary" asp-controller="Sources" asp-action="Index" class="btn btn-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">Create Source</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function onProviderTypeChange() {
+            var value = $('#ProviderType').val();
+            if (value === 'DynamicDll') {
+                $('#dynamicDllFields').show();
+            } else {
+                $('#dynamicDllFields').hide();
+            }
+        }
+
+        function discoverDbContexts() {
+            var assemblyPath = $('#AssemblyPath').val();
+            if (!assemblyPath) {
+                DataTableHelpers.alert('Please enter an assembly path first.');
+                return;
+            }
+
+            DataTableHelpers.showProgress(true);
+
+            $.ajax({
+                url: '@Url.Action("DiscoverDbContexts", "Sources", new { area = "DataDictionary" })',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ assemblyPath: assemblyPath }),
+                success: function(result) {
+                    DataTableHelpers.showProgress(false);
+                    if (result.success) {
+                        var dropdown = $('#DbContextTypeName');
+
+                        if (result.dbContexts.length > 0) {
+                            dropdown.empty().append('<option value="">-- Select DbContext --</option>');
+                            result.dbContexts.forEach(function(ctx) {
+                                dropdown.append('<option value="' + ctx.fullName + '">' + ctx.fullName + '</option>');
+                            });
+                            dropdown.prop('disabled', false);
+
+                            // Show discovery results
+                            var list = $('#discoveryList');
+                            list.empty();
+                            result.dbContexts.forEach(function(ctx) {
+                                list.append('<li><strong>' + ctx.name + '</strong> - ' +
+                                    ctx.entityCount + ' entities ' +
+                                    (ctx.hasParameterlessConstructor ? '(parameterless ctor)' : '(requires options)') +
+                                    '</li>');
+                            });
+                            $('#discoveryResults').show();
+                        } else {
+                            dropdown.empty().append('<option value="">-- Select DbContext --</option>');
+                            dropdown.prop('disabled', true);
+                            $('#discoveryResults').hide();
+                            DataTableHelpers.alert('No DbContext types found in the assembly.');
+                        }
+                    } else {
+                        DataTableHelpers.alert('Discovery failed: ' + result.message);
+                    }
+                },
+                error: function() {
+                    DataTableHelpers.showProgress(false);
+                    DataTableHelpers.alert('Error discovering DbContexts');
+                }
+            });
+        }
+
+        $(document).ready(function() {
+            onProviderTypeChange();
+        });
+    </script>
+}

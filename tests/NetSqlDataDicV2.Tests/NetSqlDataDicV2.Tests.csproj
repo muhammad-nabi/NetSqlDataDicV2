@@ -22,6 +22,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\DataDictionary.AspNetCore.Core\DataDictionary.AspNetCore.Core.csproj" />
+    <ProjectReference Include="..\..\src\DataDictionary.AspNetCore\DataDictionary.AspNetCore.csproj" />
     <ProjectReference Include="..\..\src\NetSqlDataDicV2.Web\NetSqlDataDicV2.Web.csproj" />
   </ItemGroup>
 

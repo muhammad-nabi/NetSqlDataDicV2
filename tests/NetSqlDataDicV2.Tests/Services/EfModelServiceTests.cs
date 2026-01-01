@@ -3,10 +3,6 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NetSqlDataDicV2.Web.Models.Dto;
-using NetSqlDataDicV2.Web.Models.Entities;
-using NetSqlDataDicV2.Web.Services;
-using NetSqlDataDicV2.Web.Services.DbContextProviders;
 
 namespace NetSqlDataDicV2.Tests.Services;
 

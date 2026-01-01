@@ -1,6 +1,3 @@
-using Microsoft.EntityFrameworkCore;
-using NetSqlDataDicV2.Web.Data;
-
 namespace NetSqlDataDicV2.Tests.TestHelpers;
 
 /// <summary>

@@ -1,0 +1,178 @@
+@model DataDictionary.AspNetCore.Core.Models.ViewModels.EfModelSourceEditViewModel
+@{
+    ViewData["Title"] = "Edit EF Model Source";
+    var providerTypes = ViewBag.ProviderTypes as List<string> ?? new List<string>();
+}
+
+<div class="container py-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a asp-area="DataDictionary" asp-controller="Sources" asp-action="Index">EF Model Sources</a></li>
+            <li class="breadcrumb-item active">Edit</li>
+        </ol>
+    </nav>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">Edit EF Model Source</h4>
+            <div>
+                <span class="badge @(Model.IsActive ? "bg-success" : "bg-warning text-dark")">
+                    @(Model.IsActive ? "Active" : "Inactive")
+                </span>
+            </div>
+        </div>
+        <div class="card-body">
+            <form asp-area="DataDictionary" asp-controller="Sources" asp-action="Edit" method="post">
+                <input type="hidden" asp-for="Id" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="Name" class="form-label"></label>
+                        <input asp-for="Name" class="form-control" />
+                        <span asp-validation-for="Name" class="text-danger"></span>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="ProviderType" class="form-label"></label>
+                        <select asp-for="ProviderType" class="form-select" id="ProviderType" onchange="onProviderTypeChange()">
+                            @foreach (var pt in providerTypes)
+                            {
+                                <option value="@pt" selected="@(Model.ProviderType == pt)">@pt</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label asp-for="IsActive" class="form-label d-block"></label>
+                        <div class="form-check form-switch">
+                            <input asp-for="IsActive" class="form-check-input" type="checkbox" role="switch" id="IsActive">
+                            <label class="form-check-label" for="IsActive">Active</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="dynamicDllFields">
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label asp-for="AssemblyPath" class="form-label"></label>
+                            <div class="input-group">
+                                <input asp-for="AssemblyPath" class="form-control" />
+                                <button type="button" class="btn btn-outline-secondary" onclick="discoverDbContexts()">
+                                    Discover
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="DbContextTypeName" class="form-label"></label>
+                            <input asp-for="DbContextTypeName" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <label asp-for="ConnectionString" class="form-label"></label>
+                            <input asp-for="ConnectionString" class="form-control" />
+                            @if (Model.HasConnectionString)
+                            {
+                                <small class="text-muted">A connection string is already stored. Leave blank to keep existing.</small>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <h5>Target Database</h5>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label asp-for="TargetServer" class="form-label"></label>
+                        <input asp-for="TargetServer" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="TargetDatabase" class="form-label"></label>
+                        <input asp-for="TargetDatabase" class="form-control" />
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <label asp-for="Description" class="form-label"></label>
+                        <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between">
+                    <a asp-area="DataDictionary" asp-controller="Sources" asp-action="Index" class="btn btn-secondary">Cancel</a>
+                    <div>
+                        <button type="button" class="btn btn-info" onclick="validateSource()">
+                            Validate
+                        </button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function onProviderTypeChange() {
+            var value = $('#ProviderType').val();
+            $('#dynamicDllFields').toggle(value === 'DynamicDll');
+        }
+
+        function discoverDbContexts() {
+            var assemblyPath = $('#AssemblyPath').val();
+            if (!assemblyPath) {
+                DataTableHelpers.alert('Please enter an assembly path first.');
+                return;
+            }
+
+            DataTableHelpers.showProgress(true);
+
+            $.ajax({
+                url: '@Url.Action("DiscoverDbContexts", "Sources", new { area = "DataDictionary" })',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ assemblyPath: assemblyPath }),
+                success: function(result) {
+                    DataTableHelpers.showProgress(false);
+                    if (result.success && result.dbContexts.length > 0) {
+                        var names = result.dbContexts.map(c => c.fullName).join('\n');
+                        DataTableHelpers.alert('Found DbContexts:\n' + names);
+                    } else {
+                        DataTableHelpers.alert(result.message || 'No DbContext types found.');
+                    }
+                },
+                error: function() {
+                    DataTableHelpers.showProgress(false);
+                    DataTableHelpers.alert('Error discovering DbContexts');
+                }
+            });
+        }
+
+        function validateSource() {
+            DataTableHelpers.showProgress(true);
+
+            $.post('@Url.Action("Validate", "Sources", new { area = "DataDictionary" })', { id: @Model.Id })
+                .done(function(result) {
+                    DataTableHelpers.showProgress(false);
+                    if (result.isValid) {
+                        DataTableHelpers.alert('Validation successful: ' + result.message, 'Success');
+                    } else {
+                        DataTableHelpers.alert('Validation failed: ' + result.errorMessage, 'Error');
+                    }
+                })
+                .fail(function() {
+                    DataTableHelpers.showProgress(false);
+                    DataTableHelpers.alert('Error during validation', 'Error');
+                });
+        }
+
+        $(document).ready(function() {
+            onProviderTypeChange();
+        });
+    </script>
+}

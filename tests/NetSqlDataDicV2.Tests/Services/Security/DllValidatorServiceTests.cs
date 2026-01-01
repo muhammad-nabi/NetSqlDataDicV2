@@ -1,7 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using NetSqlDataDicV2.Web.Configuration;
-using NetSqlDataDicV2.Web.Services.Security;
 
 namespace NetSqlDataDicV2.Tests.Services.Security;
 

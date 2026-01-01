@@ -1,5 +1,3 @@
-using NetSqlDataDicV2.Web.Models.Entities;
-
 namespace NetSqlDataDicV2.Tests.TestHelpers;
 
 /// <summary>

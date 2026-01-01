@@ -1,5 +1,5 @@
-using NetSqlDataDicV2.Web.Exceptions;
-using NetSqlDataDicV2.Web.Helpers;
+using DataDictionary.AspNetCore.Core.Exceptions;
+using DataDictionary.AspNetCore.Core.Helpers;
 using System.Text.Json;
 
 namespace NetSqlDataDicV2.Web.Middleware;

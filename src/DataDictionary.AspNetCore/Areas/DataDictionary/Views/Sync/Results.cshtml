@@ -1,0 +1,211 @@
+@model DataDictionary.AspNetCore.Core.Models.ViewModels.SyncResultsViewModel
+@{
+    ViewData["Title"] = $"Sync Results - {Model.SyncStartTime:yyyy-MM-dd HH:mm}";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <h2>Sync Results</h2>
+        <small class="text-muted">
+            @Model.DatabaseServer / @Model.DatabaseName
+            <span class="mx-2">|</span>
+            @Model.SyncStartTime.ToString("yyyy-MM-dd HH:mm:ss")
+            <span class="mx-2">|</span>
+            Duration: @Model.DurationDisplay
+        </small>
+    </div>
+    <a asp-area="DataDictionary" asp-controller="Sync" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        Back to Sync
+    </a>
+</div>
+
+@if (Model.IsFailed)
+{
+    <div class="alert alert-danger mb-4">
+        <h5 class="alert-heading mb-2">Sync Failed</h5>
+        <p class="mb-0">@(Model.ErrorMessage ?? "An unknown error occurred during sync.")</p>
+    </div>
+}
+else
+{
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-body py-3">
+                    <h3 class="text-success mb-0">@Model.AddedCount</h3>
+                    <small class="text-muted">Added</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-body py-3">
+                    <h3 class="text-warning mb-0">@Model.ModifiedCount</h3>
+                    <small class="text-muted">Modified</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-body py-3">
+                    <h3 class="text-danger mb-0">@Model.DeletedCount</h3>
+                    <small class="text-muted">Deleted</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-body py-3">
+                    <h3 class="text-info mb-0">@Model.RestoredCount</h3>
+                    <small class="text-muted">Restored</small>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card text-center">
+                <div class="card-body py-3">
+                    <h3 class="text-secondary mb-0">@Model.TotalChanges</h3>
+                    <small class="text-muted">Total</small>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Changes Grid -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0">Changes</h6>
+        @if (Model.HasChanges)
+        {
+            <div class="btn-group btn-group-sm" role="group">
+                <button type="button" class="btn btn-outline-secondary filter-btn active" data-filter="all">All</button>
+                <button type="button" class="btn btn-outline-success filter-btn" data-filter="Added">Added</button>
+                <button type="button" class="btn btn-outline-warning filter-btn" data-filter="Modified">Modified</button>
+                <button type="button" class="btn btn-outline-danger filter-btn" data-filter="Deleted">Deleted</button>
+                <button type="button" class="btn btn-outline-info filter-btn" data-filter="Restored">Restored</button>
+            </div>
+        }
+    </div>
+    <div class="card-body p-0">
+        @if (Model.HasChanges)
+        {
+            <div class="table-responsive">
+                <table id="changesGrid" class="table table-striped table-hover table-sm mb-0" style="width:100%">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Change Type</th>
+                            <th>Schema</th>
+                            <th>Table</th>
+                            <th>Column</th>
+                            <th>Property</th>
+                            <th>Old Value</th>
+                            <th>New Value</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.AuditItems)
+                        {
+                            <tr data-change-type="@item.ChangeType">
+                                <td>
+                                    <span class="badge @item.ChangeTypeBadgeClass">@item.ChangeType</span>
+                                </td>
+                                <td><code class="text-muted">@item.SchemaName</code></td>
+                                <td>@item.TableName</td>
+                                <td>
+                                    <a asp-area="DataDictionary" asp-controller="Dictionary" asp-action="Details" asp-route-id="@item.DataElementId">
+                                        @item.ColumnName
+                                    </a>
+                                </td>
+                                <td>@(item.PropertyName ?? "-")</td>
+                                <td>
+                                    @if (item.OldValue != null)
+                                    {
+                                        <code>@item.OldValue</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (item.NewValue != null)
+                                    {
+                                        <code>@item.NewValue</code>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>@item.ChangeTime.ToString("HH:mm:ss")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else if (Model.IsFailed)
+        {
+            <div class="p-4 text-center text-muted">
+                <em>No changes were recorded due to sync failure.</em>
+            </div>
+        }
+        else
+        {
+            <div class="p-4 text-center text-muted">
+                <em>No changes detected during this sync. The database schema matches the Data Dictionary.</em>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    $(document).ready(function () {
+        // Initialize DataTable
+        var table = null;
+        if ($('#changesGrid tbody tr').length > 0) {
+            table = $('#changesGrid').DataTable({
+                pageLength: 50,
+                lengthMenu: [[25, 50, 100, -1], [25, 50, 100, "All"]],
+                order: [[7, 'desc'], [2, 'asc'], [3, 'asc']], // Time desc, then Table, Column
+                scrollX: true,
+                autoWidth: false,
+                columnDefs: [
+                    { width: '90px', targets: 0 },   // Change Type
+                    { width: '80px', targets: 1 },   // Schema
+                    { width: '140px', targets: 2 },  // Table
+                    { width: '120px', targets: 3 },  // Column
+                    { width: '100px', targets: 4 },  // Property
+                    { width: '120px', targets: 5 },  // Old Value
+                    { width: '120px', targets: 6 },  // New Value
+                    { width: '80px', targets: 7 }    // Time
+                ],
+                language: {
+                    emptyTable: "No changes recorded"
+                }
+            });
+        }
+
+        // Filter buttons
+        $(".filter-btn").on("click", function () {
+            $(".filter-btn").removeClass("active");
+            $(this).addClass("active");
+
+            var filter = $(this).data("filter");
+
+            if (table) {
+                if (filter === "all") {
+                    table.search('').columns().search('').draw();
+                } else {
+                    // Use regex to match exact change type in first column
+                    table.column(0).search('^' + filter + '$', true, false).draw();
+                }
+            }
+        });
+    });
+</script>
+}

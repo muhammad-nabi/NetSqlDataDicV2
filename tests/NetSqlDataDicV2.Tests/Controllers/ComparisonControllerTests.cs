@@ -1,7 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using NetSqlDataDicV2.Web.Controllers;
-using NetSqlDataDicV2.Web.Models.Entities;
 
 namespace NetSqlDataDicV2.Tests.Controllers;
 

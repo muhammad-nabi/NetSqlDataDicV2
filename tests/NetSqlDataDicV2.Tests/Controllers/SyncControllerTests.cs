@@ -3,9 +3,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NetSqlDataDicV2.Web.Controllers;
-using NetSqlDataDicV2.Web.Models.ViewModels;
-using NetSqlDataDicV2.Web.Services;
 
 namespace NetSqlDataDicV2.Tests.Controllers;
 

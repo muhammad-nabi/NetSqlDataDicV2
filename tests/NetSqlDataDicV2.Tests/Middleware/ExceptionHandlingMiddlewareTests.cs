@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NetSqlDataDicV2.Web.Exceptions;
-using NetSqlDataDicV2.Web.Middleware;
 using System.Text.Json;
 
 namespace NetSqlDataDicV2.Tests.Middleware;

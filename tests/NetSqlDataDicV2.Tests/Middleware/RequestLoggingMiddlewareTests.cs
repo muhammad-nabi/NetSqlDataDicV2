@@ -2,7 +2,6 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NetSqlDataDicV2.Web.Middleware;
 
 namespace NetSqlDataDicV2.Tests.Middleware;
 

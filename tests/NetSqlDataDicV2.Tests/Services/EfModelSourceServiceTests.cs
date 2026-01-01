@@ -1,7 +1,4 @@
 using Microsoft.Extensions.Logging;
-using NetSqlDataDicV2.Web.Models.Entities;
-using NetSqlDataDicV2.Web.Services.DbContextProviders;
-using NetSqlDataDicV2.Web.Services.Security;
 
 namespace NetSqlDataDicV2.Tests.Services;
 

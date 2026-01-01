@@ -1,7 +1,6 @@
 using FluentAssertions;
 using Microsoft.Extensions.Logging;
 using Moq;
-using NetSqlDataDicV2.Web.Services.Security;
 
 namespace NetSqlDataDicV2.Tests.Services.Security;
 

@@ -1,17 +1,8 @@
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.EntityFrameworkCore;
-using NetSqlDataDicV2.Web.Configuration;
-using NetSqlDataDicV2.Web.Data;
+using DataDictionary.AspNetCore.Core.Extensions;
 using NetSqlDataDicV2.Web.Middleware;
-using NetSqlDataDicV2.Web.Services;
-using NetSqlDataDicV2.Web.Services.DbContextProviders;
-using NetSqlDataDicV2.Web.Services.Security;
 
 var builder = WebApplication.CreateBuilder(args);
-
-// Validate configuration
-var dataDictionaryConnectionString = builder.Configuration.GetConnectionString("DataDictionary")
-    ?? throw new InvalidOperationException("DataDictionary connection string is required. Configure it in appsettings.json.");
 
 // Add MVC with JSON options
 builder.Services.AddControllersWithViews()
@@ -27,37 +18,8 @@ builder.Services.AddControllersWithViews()
 builder.Services.AddDataProtection()
     .SetApplicationName("NetSqlDataDicV2");
 
-// Configure DLL security options
-builder.Services.Configure<DllSecurityOptions>(
-    builder.Configuration.GetSection(DllSecurityOptions.SectionName));
-
-// Register security services
-builder.Services.AddScoped<IDllValidatorService, DllValidatorService>();
-builder.Services.AddScoped<IConnectionStringProtector, ConnectionStringProtector>();
-builder.Services.AddScoped<ISecurityAuditService, SecurityAuditService>();
-
-// Register shadow copy service (Singleton to track copies across requests for cleanup)
-builder.Services.AddSingleton<IDllShadowCopyService, DllShadowCopyService>();
-
-// Add DbContext for Data Dictionary
-builder.Services.AddDbContext<DataDictionaryDbContext>(options =>
-    options.UseSqlServer(dataDictionaryConnectionString));
-
-// Add DbContext provider factory (supports DLL loading for EF model comparison)
-builder.Services.AddScoped<IDbContextProviderFactory, DbContextProviderFactory>();
-
-// Add application services
-builder.Services.AddScoped<IDataDictionaryService, DataDictionaryService>();
-builder.Services.AddScoped<IDatabaseSyncService, DatabaseSyncService>();
-
-// EfModelService - uses DLL loading for EF model comparison
-builder.Services.AddScoped<IEfModelService, EfModelService>();
-
-// EfModelSourceService - manages EF model source configurations
-builder.Services.AddScoped<IEfModelSourceService, EfModelSourceService>();
-
-// ComparisonService - compares data dictionary with EF models
-builder.Services.AddScoped<IComparisonService, ComparisonService>();
+// Add all Data Dictionary Core services (DbContext, business services, security services)
+builder.Services.AddDataDictionaryCore(builder.Configuration);
 
 var app = builder.Build();
 
@@ -78,8 +40,21 @@ app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthorization();
 
+// Area routing for the DataDictionary RCL
+app.MapControllerRoute(
+    name: "areas",
+    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+
+// Default route redirects to DataDictionary area
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// Redirect root to DataDictionary area
+app.MapGet("/", context =>
+{
+    context.Response.Redirect("/DataDictionary");
+    return Task.CompletedTask;
+});
 
 app.Run();

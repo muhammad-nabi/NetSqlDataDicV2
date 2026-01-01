@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using DataDictionary.AspNetCore.Core.Configuration;
 using DataDictionary.AspNetCore.Core.Data;
+using DataDictionary.AspNetCore.Core.Services;
 using DataDictionary.AspNetCore.Core.Services.DbContextProviders;
 using DataDictionary.AspNetCore.Core.Services.Security;
 
@@ -38,6 +39,13 @@ public static class CoreServiceCollectionExtensions
 
         // DbContext provider services
         services.AddScoped<IDbContextProviderFactory, DbContextProviderFactory>();
+
+        // Business services
+        services.AddScoped<IDataDictionaryService, DataDictionaryService>();
+        services.AddScoped<IDatabaseSyncService, DatabaseSyncService>();
+        services.AddScoped<IComparisonService, ComparisonService>();
+        services.AddScoped<IEfModelService, EfModelService>();
+        services.AddScoped<IEfModelSourceService, EfModelSourceService>();
 
         // Configuration
         services.Configure<DllSecurityOptions>(
