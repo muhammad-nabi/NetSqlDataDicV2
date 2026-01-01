@@ -23,6 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DataDictionary.AspNetCore\DataDictionary.AspNetCore.csproj" />
     <ProjectReference Include="..\DataDictionary.AspNetCore.Core\DataDictionary.AspNetCore.Core.csproj" />
   </ItemGroup>
 

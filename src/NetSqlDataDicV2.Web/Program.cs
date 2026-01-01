@@ -1,25 +1,10 @@
-using Microsoft.AspNetCore.DataProtection;
-using DataDictionary.AspNetCore.Core.Extensions;
+using DataDictionary.AspNetCore.Extensions;
 using NetSqlDataDicV2.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add MVC with JSON options
-builder.Services.AddControllersWithViews()
-    .AddJsonOptions(options =>
-    {
-        options.JsonSerializerOptions.PropertyNamingPolicy =
-            System.Text.Json.JsonNamingPolicy.CamelCase;
-    });
-
-// Add Data Protection (required for connection string encryption)
-// Keys are persisted to the application's content root by default in Development
-// For Production, configure key storage (Azure Key Vault, AWS, or file system)
-builder.Services.AddDataProtection()
-    .SetApplicationName("NetSqlDataDicV2");
-
-// Add all Data Dictionary Core services (DbContext, business services, security services)
-builder.Services.AddDataDictionaryCore(builder.Configuration);
+// Add Data Dictionary services (includes MVC, Data Protection, Core services)
+builder.Services.AddDataDictionary(builder.Configuration);
 
 var app = builder.Build();
 
@@ -31,29 +16,25 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (!app.Environment.IsDevelopment())
 {
-    app.UseExceptionHandler("/Home/Error");
+    app.UseExceptionHandler("/tools/datadictionary/Home/Error");
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+
+// UseDataDictionary handles static files and auto-migration
+app.UseDataDictionary();
+
 app.UseRouting();
 app.UseAuthorization();
 
-// Area routing for the DataDictionary RCL
-app.MapControllerRoute(
-    name: "areas",
-    pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
+// Map Data Dictionary routes at /tools/datadictionary
+app.MapDataDictionary();
 
-// Default route redirects to DataDictionary area
-app.MapControllerRoute(
-    name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
-
-// Redirect root to DataDictionary area
+// Redirect root to Data Dictionary
 app.MapGet("/", context =>
 {
-    context.Response.Redirect("/DataDictionary");
+    context.Response.Redirect("/tools/datadictionary");
     return Task.CompletedTask;
 });
 
