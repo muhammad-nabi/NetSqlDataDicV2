@@ -48,13 +48,13 @@ NetSqlDataDicV2/
 │   │   ├── Areas/DataDictionary/          # Area-based routing
 │   │   │   ├── Controllers/               # Home, Dictionary, Sync, Comparison, Sources
 │   │   │   └── Views/                     # Razor views
-│   │   ├── Configuration/                 # DataDictionaryOptions
+│   │   ├── Configuration/                 # DataDictionaryOptions, DataDictionaryMiddlewareOptions
 │   │   ├── Extensions/                    # AddDataDictionary, UseDataDictionary, MapDataDictionary
+│   │   ├── Middleware/                    # RequestLogging, ExceptionHandling (optional)
 │   │   └── wwwroot/                       # CSS, JS (served at /_content/DataDictionary.AspNetCore/)
 │   │
 │   └── NetSqlDataDicV2.Web/               # Demo/Sample application
 │       ├── Program.cs                     # Shows package integration
-│       ├── Middleware/                    # RequestLogging, ExceptionHandling
 │       └── Migrations/                    # EF Core migrations
 │
 ├── tests/NetSqlDataDicV2.Tests/           # xUnit tests (380 tests)
@@ -354,13 +354,24 @@ Converts the Data Dictionary into a reusable Razor Class Library (RCL) NuGet pac
 | 3 | Complete | UI package (Controllers/Views to RCL Areas) |
 | 4 | Complete | Extension methods (AddDataDictionary, UseDataDictionary, MapDataDictionary) |
 | 5-6 | Complete | View customization, Controller refactoring |
-| 7 | Pending | Middleware integration (optional) |
+| 7 | Complete | Middleware integration (RequestLogging, ExceptionHandling) |
 | 8-10 | Complete | Migrations, Static assets, Test migration |
 
-**Consumer Integration (3 lines):**
+**Consumer Integration:**
 ```csharp
 builder.Services.AddDataDictionary(builder.Configuration);
-app.UseDataDictionary();    // Auto-migrates database
+
+// Basic setup (auto-migrates database)
+app.UseDataDictionary();
+
+// Or with optional middleware
+app.UseDataDictionary(middleware =>
+{
+    middleware.UseRequestLogging = true;
+    middleware.UseExceptionHandling = true;
+    middleware.IncludeStackTraceInErrors = app.Environment.IsDevelopment();
+});
+
 app.MapDataDictionary();    // Routes at /tools/datadictionary
 ```
 
@@ -421,9 +432,9 @@ Custom exceptions for DLL loading operations in `/Exceptions/`:
 | `EfModelSourceException` | Source configuration errors |
 
 **Error Handling Infrastructure:**
-- `ErrorMessages` helper (`/Helpers/`) - Centralized user-friendly messages with path sanitization
-- `ExceptionHandlingMiddleware` (`/Middleware/`) - Global exception handler with correlation IDs
-- `OperationResult<T>` (`/Models/`) - Generic result types for service operations
+- `ErrorMessages` helper (Core library `/Helpers/`) - Centralized user-friendly messages with path sanitization
+- `ExceptionHandlingMiddleware` (RCL `/Middleware/`) - Global exception handler with correlation IDs
+- `OperationResult<T>` (Core library `/Models/`) - Generic result types for service operations
 
 **Error Response Behavior:**
 - API requests (`/api/*` or JSON Accept header): Returns JSON with error, correlationId, details (dev only)

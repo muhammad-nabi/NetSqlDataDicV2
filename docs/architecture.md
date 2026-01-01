@@ -121,11 +121,15 @@ NetSqlDataDicV2/
 │   │   │       ├── Sources/
 │   │   │       └── Shared/
 │   │   ├── Configuration/
-│   │   │   └── DataDictionaryOptions.cs
+│   │   │   ├── DataDictionaryOptions.cs
+│   │   │   └── DataDictionaryMiddlewareOptions.cs
 │   │   ├── Extensions/
 │   │   │   ├── ServiceCollectionExtensions.cs
 │   │   │   ├── ApplicationBuilderExtensions.cs
 │   │   │   └── EndpointRouteBuilderExtensions.cs
+│   │   ├── Middleware/
+│   │   │   ├── RequestLoggingMiddleware.cs
+│   │   │   └── ExceptionHandlingMiddleware.cs
 │   │   ├── Models/
 │   │   │   └── ErrorViewModel.cs
 │   │   └── wwwroot/
@@ -134,9 +138,6 @@ NetSqlDataDicV2/
 │   │
 │   └── NetSqlDataDicV2.Web/             # Demo/Sample Application
 │       ├── Program.cs                   # Shows RCL integration
-│       ├── Middleware/
-│       │   ├── RequestLoggingMiddleware.cs
-│       │   └── ExceptionHandlingMiddleware.cs
 │       ├── Migrations/                  # EF Core migrations
 │       ├── appsettings.json
 │       └── appsettings.Development.json
@@ -496,13 +497,24 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | Pluggable Phase 3 | UI Package (Controllers/Views to RCL Areas) | Complete |
 | Pluggable Phase 4 | Extension Methods (AddDataDictionary, UseDataDictionary, MapDataDictionary) | Complete |
 | Pluggable Phase 5-6 | View Customization, Controller Refactoring | Complete |
-| Pluggable Phase 7 | Middleware Integration | Pending |
+| Pluggable Phase 7 | Middleware Integration (RequestLogging, ExceptionHandling) | Complete |
 | Pluggable Phase 8-10 | Migrations, Static Assets, Test Migration | Complete |
 
 **Consumer Integration:**
 ```csharp
 builder.Services.AddDataDictionary(builder.Configuration);
-app.UseDataDictionary();    // Auto-migrates database
+
+// Basic setup (auto-migrates database)
+app.UseDataDictionary();
+
+// Or with optional middleware
+app.UseDataDictionary(middleware =>
+{
+    middleware.UseRequestLogging = true;
+    middleware.UseExceptionHandling = true;
+    middleware.IncludeStackTraceInErrors = app.Environment.IsDevelopment();
+});
+
 app.MapDataDictionary();    // Routes at /tools/datadictionary
 ```
 
