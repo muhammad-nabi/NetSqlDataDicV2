@@ -11,6 +11,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{0AB3BF05
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetSqlDataDicV2.Tests", "tests\NetSqlDataDicV2.Tests\NetSqlDataDicV2.Tests.csproj", "{1481B54F-0AE9-4C1C-97C1-FA66F2BD0B6D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataDictionary.AspNetCore.Core", "src\DataDictionary.AspNetCore.Core\DataDictionary.AspNetCore.Core.csproj", "{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataDictionary.AspNetCore", "src\DataDictionary.AspNetCore\DataDictionary.AspNetCore.csproj", "{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +49,30 @@ Global
 		{1481B54F-0AE9-4C1C-97C1-FA66F2BD0B6D}.Release|x64.Build.0 = Release|Any CPU
 		{1481B54F-0AE9-4C1C-97C1-FA66F2BD0B6D}.Release|x86.ActiveCfg = Release|Any CPU
 		{1481B54F-0AE9-4C1C-97C1-FA66F2BD0B6D}.Release|x86.Build.0 = Release|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Debug|x64.Build.0 = Debug|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Debug|x86.Build.0 = Debug|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Release|x64.ActiveCfg = Release|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Release|x64.Build.0 = Release|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Release|x86.ActiveCfg = Release|Any CPU
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D}.Release|x86.Build.0 = Release|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Debug|x64.Build.0 = Debug|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Debug|x86.Build.0 = Debug|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Release|x64.ActiveCfg = Release|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Release|x64.Build.0 = Release|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Release|x86.ActiveCfg = Release|Any CPU
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -52,5 +80,7 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{3DD8681D-6021-44A0-B27F-3ECB95996369} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{1481B54F-0AE9-4C1C-97C1-FA66F2BD0B6D} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{6BB9F8DF-0E39-4459-88CE-70BAB887ED4D} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{C8429C83-5C81-48C4-A00A-BEF1E66D5B29} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
