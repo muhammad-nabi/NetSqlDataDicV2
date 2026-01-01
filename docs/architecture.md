@@ -12,7 +12,7 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              User Interface                                  │
+│                              User Interface                                 │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
 │  │ Data Dictionary │  │   Sync Page     │  │    Comparison Page          │  │
 │  │  DataTables     │  │                 │  │                             │  │
@@ -21,7 +21,7 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
             │                    │                        │
             ▼                    ▼                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                           MVC Controllers                                    │
+│                             MVC Controllers                                 │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
 │  │ DataDictionary  │  │     Sync        │  │       Comparison            │  │
 │  │   Controller    │  │   Controller    │  │       Controller            │  │
@@ -30,17 +30,17 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
             │                    │                        │
             ▼                    ▼                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            Service Layer                                     │
+│                              Service Layer                                  │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌───────────────┐ ┌───────────┐  │
 │  │ DataDictionary  │  │  DatabaseSync   │  │  EfModel      │ │Comparison │  │
 │  │    Service      │  │    Service      │  │  Service      │ │  Service  │  │
 │  └────────┬────────┘  └────────┬────────┘  └───────┬───────┘ └─────┬─────┘  │
-└───────────┼────────────────────┼──────────────────┼───────────────┼─────────┘
-            │                    │                  │               │
-            ▼                    ▼                  ▼               │
-┌─────────────────────┐  ┌─────────────────┐  ┌─────────────────┐  │
-│  DataDictionary     │  │  Source SQL     │  │  Dynamic DLL    │  │
-│  DbContext          │  │  Server DB      │  │  DbContext      │◄─┘
+└───────────┼────────────────────┼───────────────────┼───────────────┼────────┘
+            │                    │                   │               │
+            ▼                    ▼                   ▼               │
+┌─────────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │
+│  DataDictionary     │  │  Source SQL     │  │  Dynamic DLL    │    │
+│  DbContext          │  │  Server DB      │  │  DbContext      │◄───┘
 │  (EF Core)          │  │  (sys.tables)   │  │  (Runtime Load) │
 └─────────┬───────────┘  └─────────────────┘  └─────────────────┘
           │
@@ -475,4 +475,4 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | Constraint Phase 5 | Controller Layer (JSON Response Update) | Complete |
 | Constraint Phase 6 | UI Layer (Purple Badge, Summary Card, Filter, Grid Column) | Complete |
 
-**Last Updated:** December 2024
+**Last Updated:** December 2025
