@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using DataDictionary.AspNetCore.Core.Configuration;
@@ -29,7 +30,13 @@ public static class CoreServiceCollectionExtensions
         // Add DbContext
         var connectionString = configuration.GetConnectionString(connectionStringName);
         services.AddDbContext<DataDictionaryDbContext>(options =>
-            options.UseSqlServer(connectionString));
+        {
+            options.UseSqlServer(connectionString);
+#if NET9_0_OR_GREATER
+            // Suppress warning when migrations were created with different EF Core version (EF Core 9+ only)
+            options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+#endif
+        });
 
         // Security services
         services.AddScoped<IDllValidatorService, DllValidatorService>();
