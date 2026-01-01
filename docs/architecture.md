@@ -21,9 +21,9 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
             │                    │                        │
             ▼                    ▼                        ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                             MVC Controllers                                 │
+│                      MVC Controllers (RCL Area)                             │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────────┐  │
-│  │ DataDictionary  │  │     Sync        │  │       Comparison            │  │
+│  │   Dictionary    │  │     Sync        │  │       Comparison            │  │
 │  │   Controller    │  │   Controller    │  │       Controller            │  │
 │  └────────┬────────┘  └────────┬────────┘  └─────────────┬───────────────┘  │
 └───────────┼────────────────────┼────────────────────────┼───────────────────┘
@@ -62,73 +62,87 @@ A .NET 9 MVC application that creates and maintains a SQL Server data dictionary
 NetSqlDataDicV2/
 ├── NetSqlDataDicV2.sln
 ├── docs/
-│   ├── architecture.md              # This document
-│   ├── phase1-project-setup.md
-│   ├── phase2-data-dictionary.md
-│   ├── phase3-sync-feature.md
-│   ├── phase4-ef-comparison.md
-│   ├── phase5-polish.md
-│   ├── dll-loading-phases/          # DLL loading feature specs
-│   ├── simplification-phases/       # Simplification project specs
-│   ├── audit-trail-phases/          # Audit trail feature specs
-│   ├── notes-feature-phases/        # Notes feature specs
-│   ├── skipped-tables-phases/       # Skipped tables feature specs
-│   ├── sync-results-phases/         # Sync results feature specs
-│   └── constraint-comparison-phases/# Constraint comparison feature specs
+│   ├── architecture.md                  # This document
+│   ├── 01-dll-loading-phases/           # DLL loading feature specs
+│   ├── 02-simplification-phases/        # Simplification project specs
+│   ├── 03-audit-trail-phases/           # Audit trail feature specs
+│   ├── 04-notes-feature-phases/         # Notes feature specs
+│   ├── 05-skipped-tables-phases/        # Skipped tables feature specs
+│   ├── 06-sync-results-phases/          # Sync results feature specs
+│   ├── 07-constraint-comparison-phases/ # Constraint comparison feature specs
+│   ├── 08-logging-improvements/         # Logging improvements specs
+│   ├── 09-unit-testing-phases/          # Unit testing specs
+│   ├── 10-unit-testing-phase6/          # Unit testing phase 6 specs
+│   └── 11-pluggable-ui-phases/          # Pluggable UI package specs
+│
 ├── src/
-│   └── NetSqlDataDicV2.Web/         # Main MVC Application
-│       ├── Controllers/
-│       │   ├── HomeController.cs
-│       │   ├── DataDictionaryController.cs
-│       │   ├── SyncController.cs
-│       │   ├── ComparisonController.cs
-│       │   └── EfModelSourcesController.cs
-│       ├── Models/
-│       │   ├── Entities/
-│       │   │   ├── DataElement.cs
-│       │   │   ├── DataElementAudit.cs
-│       │   │   ├── DataElementNote.cs
-│       │   │   ├── SyncHistory.cs
-│       │   │   ├── SourceConnection.cs
-│       │   │   └── EfModelSource.cs
-│       │   ├── ViewModels/
-│       │   └── Dto/
-│       ├── Data/
-│       │   ├── DataDictionaryDbContext.cs
-│       │   └── Configurations/
-│       ├── Services/
-│       │   ├── IDataDictionaryService.cs
-│       │   ├── DataDictionaryService.cs
-│       │   ├── IDatabaseSyncService.cs
-│       │   ├── DatabaseSyncService.cs
-│       │   ├── IEfModelService.cs
-│       │   ├── EfModelService.cs
-│       │   ├── IComparisonService.cs
-│       │   ├── ComparisonService.cs
-│       │   ├── IEfModelSourceService.cs
-│       │   ├── EfModelSourceService.cs
-│       │   ├── DbContextProviders/     # Dynamic DLL loading
-│       │   │   ├── IDbContextProvider.cs
-│       │   │   ├── IDbContextProviderFactory.cs
-│       │   │   ├── DbContextProviderFactory.cs
-│       │   │   ├── DynamicDllProvider.cs
-│       │   │   ├── PluginLoadContext.cs
-│       │   │   └── DllShadowCopyService.cs  # Hot-reload support
-│       │   └── Security/               # DLL security services
-│       │       ├── IDllValidatorService.cs
-│       │       ├── DllValidatorService.cs
-│       │       ├── IConnectionStringProtector.cs
-│       │       ├── ConnectionStringProtector.cs
-│       │       ├── ISecurityAuditService.cs
-│       │       └── SecurityAuditService.cs
-│       ├── Views/
-│       ├── wwwroot/
+│   ├── DataDictionary.AspNetCore.Core/  # Core Library (NuGet Package)
+│   │   ├── Data/
+│   │   │   ├── DataDictionaryDbContext.cs
+│   │   │   └── Configurations/          # Entity configurations
+│   │   ├── Entities/
+│   │   │   ├── DataElement.cs
+│   │   │   ├── DataElementAudit.cs
+│   │   │   ├── DataElementNote.cs
+│   │   │   ├── SyncHistory.cs
+│   │   │   ├── SourceConnection.cs
+│   │   │   └── EfModelSource.cs
+│   │   ├── Models/
+│   │   │   ├── ViewModels/
+│   │   │   └── Dto/
+│   │   ├── Services/
+│   │   │   ├── DataDictionaryService.cs
+│   │   │   ├── DatabaseSyncService.cs
+│   │   │   ├── EfModelService.cs
+│   │   │   ├── ComparisonService.cs
+│   │   │   ├── EfModelSourceService.cs
+│   │   │   ├── DbContextProviders/      # Dynamic DLL loading
+│   │   │   └── Security/                # DLL security services
+│   │   ├── Exceptions/
+│   │   ├── Helpers/
+│   │   ├── Configuration/
+│   │   │   └── DllSecurityOptions.cs
+│   │   └── Extensions/
+│   │       └── CoreServiceCollectionExtensions.cs
+│   │
+│   ├── DataDictionary.AspNetCore/       # Razor Class Library (NuGet Package)
+│   │   ├── Areas/DataDictionary/
+│   │   │   ├── Controllers/
+│   │   │   │   ├── HomeController.cs
+│   │   │   │   ├── DictionaryController.cs
+│   │   │   │   ├── SyncController.cs
+│   │   │   │   ├── ComparisonController.cs
+│   │   │   │   └── SourcesController.cs
+│   │   │   └── Views/
+│   │   │       ├── Home/
+│   │   │       ├── Dictionary/
+│   │   │       ├── Sync/
+│   │   │       ├── Comparison/
+│   │   │       ├── Sources/
+│   │   │       └── Shared/
+│   │   ├── Configuration/
+│   │   │   └── DataDictionaryOptions.cs
+│   │   ├── Extensions/
+│   │   │   ├── ServiceCollectionExtensions.cs
+│   │   │   ├── ApplicationBuilderExtensions.cs
+│   │   │   └── EndpointRouteBuilderExtensions.cs
+│   │   ├── Models/
+│   │   │   └── ErrorViewModel.cs
+│   │   └── wwwroot/
+│   │       ├── css/
+│   │       └── js/
+│   │
+│   └── NetSqlDataDicV2.Web/             # Demo/Sample Application
+│       ├── Program.cs                   # Shows RCL integration
+│       ├── Middleware/
+│       │   ├── RequestLoggingMiddleware.cs
+│       │   └── ExceptionHandlingMiddleware.cs
+│       ├── Migrations/                  # EF Core migrations
 │       ├── appsettings.json
-│       ├── appsettings.Development.json
-│       └── Program.cs
+│       └── appsettings.Development.json
 │
 └── tests/
-    └── NetSqlDataDicV2.Tests/
+    └── NetSqlDataDicV2.Tests/           # 380 unit tests
 ```
 
 ## 4. Database Schema
@@ -475,4 +489,21 @@ EF model comparison sources are configured via the EfModelSources management UI,
 | Constraint Phase 5 | Controller Layer (JSON Response Update) | Complete |
 | Constraint Phase 6 | UI Layer (Purple Badge, Summary Card, Filter, Grid Column) | Complete |
 
-**Last Updated:** December 2025
+### Pluggable UI Package
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Pluggable Phase 1-2 | Project Structure, Core Library Extraction | Complete |
+| Pluggable Phase 3 | UI Package (Controllers/Views to RCL Areas) | Complete |
+| Pluggable Phase 4 | Extension Methods (AddDataDictionary, UseDataDictionary, MapDataDictionary) | Complete |
+| Pluggable Phase 5-6 | View Customization, Controller Refactoring | Complete |
+| Pluggable Phase 7 | Middleware Integration | Pending |
+| Pluggable Phase 8-10 | Migrations, Static Assets, Test Migration | Complete |
+
+**Consumer Integration:**
+```csharp
+builder.Services.AddDataDictionary(builder.Configuration);
+app.UseDataDictionary();    // Auto-migrates database
+app.MapDataDictionary();    // Routes at /tools/datadictionary
+```
+
+**Last Updated:** January 2026

@@ -34,10 +34,32 @@ dotnet ef database update <PreviousMigrationName>
 ## Architecture
 
 **Solution Structure:**
-- `src/NetSqlDataDicV2.Web` - ASP.NET Core MVC app (.NET 9) with Bootstrap 5 + DataTables
-- `tests/NetSqlDataDicV2.Tests` - xUnit tests with Moq & FluentAssertions
-  - `TestHelpers/` - Test infrastructure (TestDbContextFactory, TestDataBuilder)
-- `docs/` - Phase documentation (architecture.md, phase1-5 specs)
+```
+NetSqlDataDicV2/
+├── src/
+│   ├── DataDictionary.AspNetCore.Core/    # Core library (entities, services, DbContext)
+│   │   ├── Data/                          # DbContext, configurations
+│   │   ├── Entities/                      # DataElement, EfModelSource, etc.
+│   │   ├── Services/                      # Business logic services
+│   │   ├── Exceptions/                    # Custom exceptions
+│   │   └── Configuration/                 # DllSecurityOptions
+│   │
+│   ├── DataDictionary.AspNetCore/         # Razor Class Library (RCL)
+│   │   ├── Areas/DataDictionary/          # Area-based routing
+│   │   │   ├── Controllers/               # Home, Dictionary, Sync, Comparison, Sources
+│   │   │   └── Views/                     # Razor views
+│   │   ├── Configuration/                 # DataDictionaryOptions
+│   │   ├── Extensions/                    # AddDataDictionary, UseDataDictionary, MapDataDictionary
+│   │   └── wwwroot/                       # CSS, JS (served at /_content/DataDictionary.AspNetCore/)
+│   │
+│   └── NetSqlDataDicV2.Web/               # Demo/Sample application
+│       ├── Program.cs                     # Shows package integration
+│       ├── Middleware/                    # RequestLogging, ExceptionHandling
+│       └── Migrations/                    # EF Core migrations
+│
+├── tests/NetSqlDataDicV2.Tests/           # xUnit tests (380 tests)
+└── docs/                                  # Phase documentation
+```
 
 **Data Flow:**
 ```
@@ -293,7 +315,7 @@ Comprehensive unit test infrastructure with 380 tests achieving ~39% line covera
 | 1 | Complete | Infrastructure (Moq, FluentAssertions, EF InMemory, test helpers) |
 | 2 | Complete | Security services (DllValidatorService, ConnectionStringProtector) |
 | 3 | Complete | Core services (DataDictionaryService, ComparisonService, DatabaseSyncService, EfModelSourceService) |
-| 4 | Complete | Controllers (DataDictionaryController, ComparisonController, EfModelSourcesController) |
+| 4 | Complete | Controllers (DictionaryController, ComparisonController, SourcesController) |
 | 5 | Complete | Middleware (ExceptionHandlingMiddleware) |
 | 6 | Complete | Coverage expansion (RequestLoggingMiddleware, SyncController, ErrorMessages, SecurityAuditService, EfModelService) |
 
@@ -321,6 +343,50 @@ dotnet test --filter "FullyQualifiedName~DataDictionaryServiceTests"
 ```
 
 Detailed specs in `docs/09-unit-testing-phases/` and `docs/10-unit-testing-phase6/`.
+
+## Pluggable UI Package
+
+Converts the Data Dictionary into a reusable Razor Class Library (RCL) NuGet package.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1-2 | Complete | Project structure, Core library extraction |
+| 3 | Complete | UI package (Controllers/Views to RCL Areas) |
+| 4 | Complete | Extension methods (AddDataDictionary, UseDataDictionary, MapDataDictionary) |
+| 5-6 | Complete | View customization, Controller refactoring |
+| 7 | Pending | Middleware integration (optional) |
+| 8-10 | Complete | Migrations, Static assets, Test migration |
+
+**Consumer Integration (3 lines):**
+```csharp
+builder.Services.AddDataDictionary(builder.Configuration);
+app.UseDataDictionary();    // Auto-migrates database
+app.MapDataDictionary();    // Routes at /tools/datadictionary
+```
+
+**Configuration (appsettings.json):**
+```json
+{
+  "ConnectionStrings": {
+    "DataDictionary": "Server=...;Database=DataDictionary;..."
+  },
+  "DataDictionary": {
+    "RoutePrefix": "tools/datadictionary",
+    "AutoMigrate": true,
+    "EnableSyncFeature": true,
+    "EnableComparisonFeature": true
+  }
+}
+```
+
+**Key Features:**
+- Area-based routing at `/tools/datadictionary`
+- Auto-migration on startup (configurable)
+- Static assets served via `/_content/DataDictionary.AspNetCore/`
+- CDN-based dependencies (Bootstrap, jQuery, DataTables)
+- Views can be overridden by consumer application
+
+Detailed specs in `docs/11-pluggable-ui-phases/`.
 
 ## Security Configuration
 
