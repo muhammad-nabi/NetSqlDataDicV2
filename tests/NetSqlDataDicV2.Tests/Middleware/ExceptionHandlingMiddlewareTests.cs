@@ -1,6 +1,7 @@
+using DataDictionary.AspNetCore.Configuration;
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Moq;
 using System.Text.Json;
@@ -10,13 +11,10 @@ namespace NetSqlDataDicV2.Tests.Middleware;
 public class ExceptionHandlingMiddlewareTests
 {
     private readonly Mock<ILogger<ExceptionHandlingMiddleware>> _loggerMock;
-    private readonly Mock<IHostEnvironment> _environmentMock;
 
     public ExceptionHandlingMiddlewareTests()
     {
         _loggerMock = new Mock<ILogger<ExceptionHandlingMiddleware>>();
-        _environmentMock = new Mock<IHostEnvironment>();
-        _environmentMock.Setup(e => e.EnvironmentName).Returns("Production");
     }
 
     private HttpContext CreateHttpContext(
@@ -27,15 +25,21 @@ public class ExceptionHandlingMiddlewareTests
         context.Request.Path = path;
         context.Request.Headers.Accept = acceptHeader;
         context.Response.Body = new MemoryStream();
+
+        // Set up service provider for page redirect tests (provides DataDictionaryOptions)
+        var services = new ServiceCollection();
+        services.AddSingleton(new DataDictionaryOptions());
+        context.RequestServices = services.BuildServiceProvider();
+
         return context;
     }
 
-    private ExceptionHandlingMiddleware CreateMiddleware(RequestDelegate next)
+    private ExceptionHandlingMiddleware CreateMiddleware(RequestDelegate next, bool includeStackTrace = false)
     {
         return new ExceptionHandlingMiddleware(
             next,
             _loggerMock.Object,
-            _environmentMock.Object);
+            includeStackTrace);
     }
 
     private async Task<string> ReadResponseBody(HttpContext context)
@@ -358,13 +362,11 @@ public class ExceptionHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_Development_IncludesStackTrace()
+    public async Task InvokeAsync_IncludeStackTraceEnabled_IncludesStackTrace()
     {
         // Arrange
-        _environmentMock.Setup(e => e.EnvironmentName).Returns("Development");
-
         RequestDelegate next = ctx => throw new Exception("Test error");
-        var middleware = CreateMiddleware(next);
+        var middleware = CreateMiddleware(next, includeStackTrace: true);
         var context = CreateHttpContext(acceptHeader: "application/json");
 
         // Act
@@ -380,13 +382,11 @@ public class ExceptionHandlingMiddlewareTests
     }
 
     [Fact]
-    public async Task InvokeAsync_Production_NoStackTrace()
+    public async Task InvokeAsync_IncludeStackTraceDisabled_NoStackTrace()
     {
         // Arrange
-        _environmentMock.Setup(e => e.EnvironmentName).Returns("Production");
-
         RequestDelegate next = ctx => throw new Exception("Test error");
-        var middleware = CreateMiddleware(next);
+        var middleware = CreateMiddleware(next, includeStackTrace: false);
         var context = CreateHttpContext(acceptHeader: "application/json");
 
         // Act
@@ -417,7 +417,8 @@ public class ExceptionHandlingMiddlewareTests
 
         // Assert
         context.Response.StatusCode.Should().Be(302);
-        context.Response.Headers.Location.ToString().Should().StartWith("/Home/Error");
+        // Uses configured route prefix (defaults to tools/datadictionary)
+        context.Response.Headers.Location.ToString().Should().Contain("/Home/Error");
     }
 
     [Fact]

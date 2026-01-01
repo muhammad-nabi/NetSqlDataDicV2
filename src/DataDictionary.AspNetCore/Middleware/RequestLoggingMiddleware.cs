@@ -1,6 +1,8 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
-namespace NetSqlDataDicV2.Web.Middleware;
+namespace DataDictionary.AspNetCore.Middleware;
 
 /// <summary>
 /// Middleware that logs HTTP request information including method, path, query string,

@@ -1,5 +1,4 @@
 using DataDictionary.AspNetCore.Extensions;
-using NetSqlDataDicV2.Web.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -7,12 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDataDictionary(builder.Configuration);
 
 var app = builder.Build();
-
-// Configure pipeline
-// Add request logging first to capture all requests including errors
-app.UseMiddleware<RequestLoggingMiddleware>();
-// Add global exception handling middleware
-app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -22,8 +15,13 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// UseDataDictionary handles static files and auto-migration
-app.UseDataDictionary();
+// UseDataDictionary handles static files, auto-migration, and optional middleware
+app.UseDataDictionary(middleware =>
+{
+    middleware.UseRequestLogging = true;
+    middleware.UseExceptionHandling = true;
+    middleware.IncludeStackTraceInErrors = app.Environment.IsDevelopment();
+});
 
 app.UseRouting();
 app.UseAuthorization();

@@ -1,23 +1,31 @@
+using System.Text.Json;
+using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Core.Exceptions;
 using DataDictionary.AspNetCore.Core.Helpers;
-using System.Text.Json;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-namespace NetSqlDataDicV2.Web.Middleware;
+namespace DataDictionary.AspNetCore.Middleware;
 
+/// <summary>
+/// Middleware that handles exceptions and returns appropriate error responses.
+/// </summary>
 public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
     private readonly ILogger<ExceptionHandlingMiddleware> _logger;
-    private readonly IHostEnvironment _environment;
+    private readonly bool _includeStackTrace;
 
     public ExceptionHandlingMiddleware(
         RequestDelegate next,
         ILogger<ExceptionHandlingMiddleware> logger,
-        IHostEnvironment environment)
+        bool includeStackTrace = false)
     {
         _next = next;
         _logger = logger;
-        _environment = environment;
+        _includeStackTrace = includeStackTrace;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -63,16 +71,17 @@ public class ExceptionHandlingMiddleware
             {
                 error = message,
                 correlationId,
-                // Don't include stack trace in production
-                details = _environment.IsDevelopment() ? exception.ToString() : null
+                details = _includeStackTrace ? exception.ToString() : null
             };
 
             await context.Response.WriteAsync(JsonSerializer.Serialize(response));
         }
         else
         {
-            // For page requests, redirect to error page
-            context.Response.Redirect($"/Home/Error?message={Uri.EscapeDataString(message)}&correlationId={correlationId}");
+            // For page requests, redirect to error page using configured route prefix
+            var options = context.RequestServices.GetService<DataDictionaryOptions>();
+            var routePrefix = options?.RoutePrefix ?? "tools/datadictionary";
+            context.Response.Redirect($"/{routePrefix}/Home/Error?message={Uri.EscapeDataString(message)}&correlationId={correlationId}");
         }
     }
 

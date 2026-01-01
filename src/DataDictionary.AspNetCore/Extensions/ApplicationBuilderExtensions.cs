@@ -1,5 +1,6 @@
 using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Core.Data;
+using DataDictionary.AspNetCore.Middleware;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,12 +17,33 @@ public static class ApplicationBuilderExtensions
     /// Configures the Data Dictionary middleware and optionally applies migrations.
     /// </summary>
     /// <param name="app">The application builder.</param>
+    /// <param name="configureMiddleware">Optional action to configure middleware options.</param>
     /// <returns>The application builder for chaining.</returns>
-    public static IApplicationBuilder UseDataDictionary(this IApplicationBuilder app)
+    public static IApplicationBuilder UseDataDictionary(
+        this IApplicationBuilder app,
+        Action<DataDictionaryMiddlewareOptions>? configureMiddleware = null)
     {
         var options = app.ApplicationServices.GetRequiredService<DataDictionaryOptions>();
         var loggerFactory = app.ApplicationServices.GetRequiredService<ILoggerFactory>();
         var logger = loggerFactory.CreateLogger("DataDictionary.AspNetCore");
+
+        // Configure middleware options
+        var middlewareOptions = new DataDictionaryMiddlewareOptions();
+        configureMiddleware?.Invoke(middlewareOptions);
+
+        // Optionally add request logging middleware
+        if (middlewareOptions.UseRequestLogging)
+        {
+            logger.LogInformation("Data Dictionary: Request logging middleware enabled");
+            app.UseMiddleware<RequestLoggingMiddleware>();
+        }
+
+        // Optionally add exception handling middleware
+        if (middlewareOptions.UseExceptionHandling)
+        {
+            logger.LogInformation("Data Dictionary: Exception handling middleware enabled");
+            app.UseMiddleware<ExceptionHandlingMiddleware>(middlewareOptions.IncludeStackTraceInErrors);
+        }
 
         // Auto-migrate if enabled
         if (options.AutoMigrate)

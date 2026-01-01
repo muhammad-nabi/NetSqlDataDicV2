@@ -80,12 +80,12 @@ NetSqlDataDicV2/
 | 4 | [Extension Methods](phase4-extension-methods.md) | **Complete** | AddDataDictionary, UseDataDictionary, MapDataDictionary |
 | 5 | [View Customization](phase5-view-customization.md) | **Complete** | Layout with CDN deps, _ViewImports configured |
 | 6 | [Controller Refactoring](phase6-controller-refactoring.md) | **Complete** | Area attributes, renamed controllers |
-| 7 | [Middleware Integration](phase7-middleware.md) | Pending | Optional: move middleware to RCL |
+| 7 | [Middleware Integration](phase7-middleware.md) | **Complete** | RequestLogging & ExceptionHandling moved to RCL |
 | 8 | [Database Migrations](phase8-migrations.md) | **Complete** | Auto-migrate in UseDataDictionary() |
 | 9 | [Static Asset Delivery](phase9-static-assets.md) | **Complete** | Assets at /_content/DataDictionary.AspNetCore/ |
 | 10 | [Test Project Migration](phase10-test-migration.md) | **Complete** | Tests updated for new namespaces |
 
-**Overall Status:** 9/10 phases complete. Package is functional.
+**Overall Status:** 10/10 phases complete. Package is fully functional.
 
 ## Consumer Quick Start (Target Experience)
 
@@ -98,7 +98,17 @@ builder.Services.AddDataDictionary(builder.Configuration);
 
 var app = builder.Build();
 
-app.UseDataDictionary();  // Auto-migrates database by default
+// Basic setup - auto-migrates database by default
+app.UseDataDictionary();
+
+// Or with optional middleware
+app.UseDataDictionary(middleware =>
+{
+    middleware.UseRequestLogging = true;
+    middleware.UseExceptionHandling = true;
+    middleware.IncludeStackTraceInErrors = app.Environment.IsDevelopment();
+});
+
 app.MapDataDictionary();
 
 // 3. Add connection string in appsettings.json

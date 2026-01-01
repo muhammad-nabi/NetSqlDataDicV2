@@ -19,11 +19,9 @@ global using DataDictionary.AspNetCore.Core.Services;
 global using DataDictionary.AspNetCore.Core.Services.DbContextProviders;
 global using DataDictionary.AspNetCore.Core.Services.Security;
 
-// RCL namespaces (controllers)
+// RCL namespaces (controllers, middleware)
 global using DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
-
-// Web namespaces (middleware)
-global using NetSqlDataDicV2.Web.Middleware;
+global using DataDictionary.AspNetCore.Middleware;
 
 // Test helpers
 global using NetSqlDataDicV2.Tests.TestHelpers;
