@@ -14,7 +14,7 @@
             Duration: @Model.DurationDisplay
         </small>
     </div>
-    <a asp-area="DataDictionary" asp-controller="Sync" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+    <a asp-route="DataDictionary" asp-controller="Sync" asp-action="Index" class="btn btn-outline-secondary btn-sm">
         Back to Sync
     </a>
 </div>
@@ -115,7 +115,7 @@ else
                                 <td><code class="text-muted">@item.SchemaName</code></td>
                                 <td>@item.TableName</td>
                                 <td>
-                                    <a asp-area="DataDictionary" asp-controller="Dictionary" asp-action="Details" asp-route-id="@item.DataElementId">
+                                    <a asp-route="DataDictionary" asp-controller="Dictionary" asp-action="Details" asp-route-id="@item.DataElementId">
                                         @item.ColumnName
                                     </a>
                                 </td>

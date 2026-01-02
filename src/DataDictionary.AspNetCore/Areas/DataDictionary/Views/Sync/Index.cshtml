@@ -157,14 +157,14 @@
                                 <td>
                                     @if (item.Status == "Completed")
                                     {
-                                        <a asp-area="DataDictionary" asp-controller="Sync" asp-action="Results" asp-route-id="@item.SyncHistoryId"
+                                        <a asp-route="DataDictionary" asp-controller="Sync" asp-action="Results" asp-route-id="@item.SyncHistoryId"
                                            class="btn btn-sm btn-outline-primary">
                                             View
                                         </a>
                                     }
                                     else if (item.Status == "Failed")
                                     {
-                                        <a asp-area="DataDictionary" asp-controller="Sync" asp-action="Results" asp-route-id="@item.SyncHistoryId"
+                                        <a asp-route="DataDictionary" asp-controller="Sync" asp-action="Results" asp-route-id="@item.SyncHistoryId"
                                            class="btn btn-sm btn-outline-secondary"
                                            title="View error details">
                                             View

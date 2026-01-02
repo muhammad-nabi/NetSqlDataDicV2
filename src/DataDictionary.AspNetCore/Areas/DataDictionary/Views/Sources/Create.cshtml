@@ -7,7 +7,7 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-area="DataDictionary" asp-controller="Sources" asp-action="Index">EF Model Sources</a></li>
+            <li class="breadcrumb-item"><a asp-route="DataDictionary" asp-controller="Sources" asp-action="Index">EF Model Sources</a></li>
             <li class="breadcrumb-item active">Add New</li>
         </ol>
     </nav>
@@ -17,7 +17,7 @@
             <h4 class="mb-0">Add EF Model Source</h4>
         </div>
         <div class="card-body">
-            <form asp-area="DataDictionary" asp-controller="Sources" asp-action="Create" method="post">
+            <form asp-route="DataDictionary" asp-controller="Sources" asp-action="Create" method="post">
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
                 <div class="row mb-3">
@@ -105,7 +105,7 @@
                 </div>
 
                 <div class="d-flex justify-content-between">
-                    <a asp-area="DataDictionary" asp-controller="Sources" asp-action="Index" class="btn btn-secondary">Cancel</a>
+                    <a asp-route="DataDictionary" asp-controller="Sources" asp-action="Index" class="btn btn-secondary">Cancel</a>
                     <button type="submit" class="btn btn-primary">Create Source</button>
                 </div>
             </form>
