@@ -1,4 +1,5 @@
 using DataDictionary.AspNetCore.Configuration;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,10 +25,33 @@ public static class EndpointRouteBuilderExtensions
         var prefix = routePrefix ?? options.RoutePrefix;
 
         // Main area routes
-        endpoints.MapAreaControllerRoute(
+        var conventionBuilder = endpoints.MapAreaControllerRoute(
             name: "DataDictionary",
             areaName: options.AreaName,
             pattern: $"{prefix}/{{controller=Home}}/{{action=Index}}/{{id?}}");
+
+        // Apply authorization based on configuration
+        if (options.RequireAuthorization)
+        {
+            if (options.RequiredRoles?.Length > 0)
+            {
+                // Role-based authorization
+                conventionBuilder.RequireAuthorization(new AuthorizeAttribute
+                {
+                    Roles = string.Join(",", options.RequiredRoles)
+                });
+            }
+            else if (!string.IsNullOrEmpty(options.AuthorizationPolicy))
+            {
+                // Named policy authorization
+                conventionBuilder.RequireAuthorization(options.AuthorizationPolicy);
+            }
+            else
+            {
+                // Default authorization (requires authenticated user)
+                conventionBuilder.RequireAuthorization();
+            }
+        }
 
         return endpoints;
     }

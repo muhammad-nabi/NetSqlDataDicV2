@@ -399,6 +399,32 @@ app.MapDataDictionary();    // Routes at /tools/datadictionary
 
 Detailed specs in `docs/11-pluggable-ui-phases/`.
 
+## Authorization Configuration
+
+The Data Dictionary supports configurable authorization (opt-in).
+
+**Configuration Options (appsettings.json):**
+```json
+{
+  "DataDictionary": {
+    "RequireAuthorization": false,
+    "AuthorizationPolicy": null,
+    "RequiredRoles": null
+  }
+}
+```
+
+**Scenarios:**
+
+| Scenario | Configuration |
+|----------|--------------|
+| Public access (default) | `"RequireAuthorization": false` |
+| Authenticated users | `"RequireAuthorization": true` |
+| Custom policy | `"RequireAuthorization": true, "AuthorizationPolicy": "MyPolicy"` |
+| Role-based | `"RequireAuthorization": true, "RequiredRoles": ["Admin"]` |
+
+**Important:** Consumer must call `app.UseAuthentication()` and `app.UseAuthorization()` before `app.MapDataDictionary()`.
+
 ## Security Configuration
 
 DLL loading security is configured in `appsettings.json` under `DllSecurity`:

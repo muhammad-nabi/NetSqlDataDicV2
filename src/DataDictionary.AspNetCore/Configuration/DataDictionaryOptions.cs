@@ -48,4 +48,22 @@ public class DataDictionaryOptions
     /// DLL security options for assembly loading.
     /// </summary>
     public DllSecurityOptions DllSecurity { get; set; } = new();
+
+    /// <summary>
+    /// Whether to require authorization for Data Dictionary routes. Default: false (opt-in)
+    /// Set to true to require authentication for all routes.
+    /// </summary>
+    public bool RequireAuthorization { get; set; } = false;
+
+    /// <summary>
+    /// The authorization policy name to use. Default: null (uses default policy)
+    /// Only applies when RequireAuthorization is true.
+    /// </summary>
+    public string? AuthorizationPolicy { get; set; }
+
+    /// <summary>
+    /// Roles required to access Data Dictionary routes. Default: null (no role restriction)
+    /// Only applies when RequireAuthorization is true. Takes precedence over AuthorizationPolicy.
+    /// </summary>
+    public string[]? RequiredRoles { get; set; }
 }
