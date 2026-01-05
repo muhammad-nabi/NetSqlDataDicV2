@@ -1,21 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Core.Services;
 
 namespace DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
 
-[Area("DataDictionary")]
-public class SyncController : Controller
+public class SyncController : DataDictionaryControllerBase
 {
     private readonly IDatabaseSyncService _syncService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<SyncController> _logger;
 
     public SyncController(
+        DataDictionaryOptions options,
         IDatabaseSyncService syncService,
         IConfiguration configuration,
-        ILogger<SyncController> logger)
+        ILogger<SyncController> logger) : base(options)
     {
         _syncService = syncService;
         _configuration = configuration;

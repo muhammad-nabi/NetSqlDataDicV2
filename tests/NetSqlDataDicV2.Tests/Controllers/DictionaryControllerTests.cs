@@ -1,4 +1,5 @@
 using System.Reflection;
+using DataDictionary.AspNetCore.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -8,13 +9,15 @@ public class DictionaryControllerTests
 {
     private readonly Mock<IDataDictionaryService> _serviceMock;
     private readonly Mock<ILogger<DictionaryController>> _loggerMock;
+    private readonly DataDictionaryOptions _options;
     private readonly DictionaryController _controller;
 
     public DictionaryControllerTests()
     {
         _serviceMock = new Mock<IDataDictionaryService>();
         _loggerMock = new Mock<ILogger<DictionaryController>>();
-        _controller = new DictionaryController(_serviceMock.Object, _loggerMock.Object);
+        _options = new DataDictionaryOptions { RoutePrefix = "tools/datadictionary" };
+        _controller = new DictionaryController(_options, _serviceMock.Object, _loggerMock.Object);
     }
 
     #region Index Action Tests

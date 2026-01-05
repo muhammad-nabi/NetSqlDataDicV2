@@ -10,7 +10,7 @@
             @Model.DataElement.DatabaseServer / @Model.DataElement.DatabaseName / @Model.DataElement.SchemaName
         </small>
     </div>
-    <a asp-route="DataDictionary" asp-controller="Dictionary" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+    <a href="@ViewBag.RoutePrefix/Dictionary" class="btn btn-outline-secondary btn-sm">
         Back to Grid
     </a>
 </div>
@@ -312,7 +312,7 @@
                 btn.prop('disabled', true).text('Saving...');
 
                 $.ajax({
-                    url: '@Url.Action("AddNote", "Dictionary", new { area = "DataDictionary" })',
+                    url: '@ViewBag.RoutePrefix/Dictionary/AddNote',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({

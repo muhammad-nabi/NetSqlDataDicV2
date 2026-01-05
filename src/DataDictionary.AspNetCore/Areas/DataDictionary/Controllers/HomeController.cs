@@ -1,12 +1,16 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Models;
 
 namespace DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
 
-[Area("DataDictionary")]
-public class HomeController : Controller
+public class HomeController : DataDictionaryControllerBase
 {
+    public HomeController(DataDictionaryOptions options) : base(options)
+    {
+    }
+
     public IActionResult Index()
     {
         return View();

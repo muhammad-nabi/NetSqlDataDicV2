@@ -8,7 +8,7 @@
     <h2>Data Dictionary</h2>
     <div>
         <span id="recordCount" class="text-muted me-3"></span>
-        <a href="@Url.Action("ExportCsv", "Dictionary", new { area = "DataDictionary" })" class="btn btn-outline-primary btn-sm me-2">
+        <a href="@ViewBag.RoutePrefix/Dictionary/ExportCsv" class="btn btn-outline-primary btn-sm me-2">
             Export CSV
         </a>
         <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
@@ -67,7 +67,7 @@ $(document).ready(function() {
         serverSide: true,
         scrollX: true,
         ajax: {
-            url: '@Url.Action("Read", "Dictionary", new { area = "DataDictionary" })',
+            url: '@ViewBag.RoutePrefix/Dictionary/Read',
             type: 'POST',
             contentType: 'application/json',
             data: function(d) {
@@ -135,7 +135,7 @@ $(document).ready(function() {
                 className: 'text-center',
                 render: function(data, type, row) {
                     if (data > 0) {
-                        return '<a href="@Url.Action("Details", "Dictionary", new { area = "DataDictionary" })/' + row.dataElementId + '" ' +
+                        return '<a href="@ViewBag.RoutePrefix/Dictionary/Details/' + row.dataElementId + '" ' +
                                'class="badge bg-info text-decoration-none" title="View ' + data + ' note(s)">' +
                                data + '</a>';
                     }
@@ -147,7 +147,7 @@ $(document).ready(function() {
                 orderable: false,
                 className: 'text-center',
                 render: function(data, type, row) {
-                    return '<a href="@Url.Action("Details", "Dictionary", new { area = "DataDictionary" })/' + data + '" class="btn btn-sm btn-link p-0 me-2" title="View Details">Details</a>' +
+                    return '<a href="@ViewBag.RoutePrefix/Dictionary/Details/' + data + '" class="btn btn-sm btn-link p-0 me-2" title="View Details">Details</a>' +
                            '<button class="btn btn-sm btn-link p-0 edit-row-btn" data-id="' + data + '" title="Edit details">Edit</button>';
                 }
             }
@@ -210,7 +210,7 @@ $(document).ready(function() {
 
                     DataTableHelpers.showProgress(true);
                     $.ajax({
-                        url: '@Url.Action("Update", "Dictionary", new { area = "DataDictionary" })',
+                        url: '@ViewBag.RoutePrefix/Dictionary/Update',
                         type: 'POST',
                         contentType: 'application/json',
                         data: JSON.stringify(rowData),

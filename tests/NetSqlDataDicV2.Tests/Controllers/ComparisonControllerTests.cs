@@ -1,3 +1,4 @@
+using DataDictionary.AspNetCore.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -8,6 +9,7 @@ public class ComparisonControllerTests
     private readonly Mock<IComparisonService> _comparisonServiceMock;
     private readonly Mock<IEfModelSourceService> _sourceServiceMock;
     private readonly Mock<ILogger<ComparisonController>> _loggerMock;
+    private readonly DataDictionaryOptions _options;
     private readonly ComparisonController _controller;
 
     public ComparisonControllerTests()
@@ -15,7 +17,9 @@ public class ComparisonControllerTests
         _comparisonServiceMock = new Mock<IComparisonService>();
         _sourceServiceMock = new Mock<IEfModelSourceService>();
         _loggerMock = new Mock<ILogger<ComparisonController>>();
+        _options = new DataDictionaryOptions { RoutePrefix = "tools/datadictionary" };
         _controller = new ComparisonController(
+            _options,
             _comparisonServiceMock.Object,
             _sourceServiceMock.Object,
             _loggerMock.Object);

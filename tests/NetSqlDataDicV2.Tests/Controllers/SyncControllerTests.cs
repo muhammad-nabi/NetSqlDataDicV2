@@ -1,3 +1,4 @@
+using DataDictionary.AspNetCore.Configuration;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -10,16 +11,19 @@ public class SyncControllerTests
 {
     private readonly Mock<IDatabaseSyncService> _syncServiceMock;
     private readonly Mock<ILogger<SyncController>> _loggerMock;
+    private readonly DataDictionaryOptions _options;
 
     public SyncControllerTests()
     {
         _syncServiceMock = new Mock<IDatabaseSyncService>();
         _loggerMock = new Mock<ILogger<SyncController>>();
+        _options = new DataDictionaryOptions { RoutePrefix = "tools/datadictionary" };
     }
 
     private SyncController CreateController(IConfiguration configuration)
     {
         return new SyncController(
+            _options,
             _syncServiceMock.Object,
             configuration,
             _loggerMock.Object);

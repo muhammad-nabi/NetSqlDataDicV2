@@ -7,7 +7,7 @@
 <div class="container py-4">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a asp-route="DataDictionary" asp-controller="Sources" asp-action="Index">EF Model Sources</a></li>
+            <li class="breadcrumb-item"><a href="@ViewBag.RoutePrefix/Sources">EF Model Sources</a></li>
             <li class="breadcrumb-item active">Edit</li>
         </ol>
     </nav>
@@ -22,7 +22,7 @@
             </div>
         </div>
         <div class="card-body">
-            <form asp-route="DataDictionary" asp-controller="Sources" asp-action="Edit" method="post">
+            <form action="@ViewBag.RoutePrefix/Sources/Edit/@Model.Id" method="post">
                 <input type="hidden" asp-for="Id" />
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
@@ -102,7 +102,7 @@
                 </div>
 
                 <div class="d-flex justify-content-between">
-                    <a asp-route="DataDictionary" asp-controller="Sources" asp-action="Index" class="btn btn-secondary">Cancel</a>
+                    <a href="@ViewBag.RoutePrefix/Sources" class="btn btn-secondary">Cancel</a>
                     <div>
                         <button type="button" class="btn btn-info" onclick="validateSource()">
                             Validate
@@ -133,7 +133,7 @@
             DataTableHelpers.showProgress(true);
 
             $.ajax({
-                url: '@Url.Action("DiscoverDbContexts", "Sources", new { area = "DataDictionary" })',
+                url: '@ViewBag.RoutePrefix/Sources/DiscoverDbContexts',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({ assemblyPath: assemblyPath }),
@@ -156,7 +156,7 @@
         function validateSource() {
             DataTableHelpers.showProgress(true);
 
-            $.post('@Url.Action("Validate", "Sources", new { area = "DataDictionary" })', { id: @Model.Id })
+            $.post('@ViewBag.RoutePrefix/Sources/Validate', { id: @Model.Id })
                 .done(function(result) {
                     DataTableHelpers.showProgress(false);
                     if (result.isValid) {

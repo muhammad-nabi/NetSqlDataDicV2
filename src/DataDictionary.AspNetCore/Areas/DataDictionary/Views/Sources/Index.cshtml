@@ -5,7 +5,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>EF Model Sources</h2>
-    <a asp-route="DataDictionary" asp-controller="Sources" asp-action="Create" class="btn btn-primary btn-sm">
+    <a href="@ViewBag.RoutePrefix/Sources/Create" class="btn btn-primary btn-sm">
         + Add Source
     </a>
 </div>
@@ -75,8 +75,8 @@
                                 }
                             </td>
                             <td class="text-nowrap">
-                                <a href="@Url.Action("Index", "Comparison", new { area = "DataDictionary" })?sourceId=@source.Id" class="btn btn-sm btn-outline-primary" title="Compare">Compare</a>
-                                <a href="@Url.Action("Edit", "Sources", new { area = "DataDictionary" })/@source.Id" class="btn btn-sm btn-outline-secondary" title="Edit">Edit</a>
+                                <a href="@ViewBag.RoutePrefix/Comparison?sourceId=@source.Id" class="btn btn-sm btn-outline-primary" title="Compare">Compare</a>
+                                <a href="@ViewBag.RoutePrefix/Sources/Edit/@source.Id" class="btn btn-sm btn-outline-secondary" title="Edit">Edit</a>
                                 <button class="btn btn-sm btn-outline-danger" onclick="deleteSource(@source.Id, '@source.Name.Replace("'", "\\'")' )" title="Delete">Del</button>
                             </td>
                         </tr>
@@ -108,7 +108,7 @@
         function validateSource(id) {
             DataTableHelpers.showProgress(true);
 
-            $.post('@Url.Action("Validate", "Sources", new { area = "DataDictionary" })', { id: id })
+            $.post('@ViewBag.RoutePrefix/Sources/Validate', { id: id })
                 .done(function(result) {
                     DataTableHelpers.showProgress(false);
                     if (result.isValid) {
@@ -127,7 +127,7 @@
             DataTableHelpers.confirm("Are you sure you want to delete '" + name + "'?", "Delete Source")
                 .then(function(confirmed) {
                     if (confirmed) {
-                        $.post('@Url.Action("Delete", "Sources", new { area = "DataDictionary" })', {
+                        $.post('@ViewBag.RoutePrefix/Sources/Delete', {
                             id: id,
                             __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
                         })

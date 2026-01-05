@@ -14,7 +14,7 @@
             Duration: @Model.DurationDisplay
         </small>
     </div>
-    <a asp-route="DataDictionary" asp-controller="Sync" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+    <a href="@ViewBag.RoutePrefix/Sync" class="btn btn-outline-secondary btn-sm">
         Back to Sync
     </a>
 </div>
@@ -57,7 +57,7 @@ else
         <div class="col">
             <div class="card text-center">
                 <div class="card-body py-3">
-                    <h3 class="text-info mb-0">@Model.RestoredCount</h3>
+                    <h3 class="text-info-dark mb-0">@Model.RestoredCount</h3>
                     <small class="text-muted">Restored</small>
                 </div>
             </div>
@@ -115,7 +115,7 @@ else
                                 <td><code class="text-muted">@item.SchemaName</code></td>
                                 <td>@item.TableName</td>
                                 <td>
-                                    <a asp-route="DataDictionary" asp-controller="Dictionary" asp-action="Details" asp-route-id="@item.DataElementId">
+                                    <a href="@ViewBag.RoutePrefix/Dictionary/Details/@item.DataElementId">
                                         @item.ColumnName
                                     </a>
                                 </td>

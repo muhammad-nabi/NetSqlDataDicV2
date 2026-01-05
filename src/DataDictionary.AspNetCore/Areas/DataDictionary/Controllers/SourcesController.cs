@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Core.Exceptions;
 using DataDictionary.AspNetCore.Core.Helpers;
 using DataDictionary.AspNetCore.Core.Models.ViewModels;
@@ -8,17 +9,17 @@ using DataDictionary.AspNetCore.Core.Services.DbContextProviders;
 
 namespace DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
 
-[Area("DataDictionary")]
-public class SourcesController : Controller
+public class SourcesController : DataDictionaryControllerBase
 {
     private readonly IEfModelSourceService _sourceService;
     private readonly IDbContextProviderFactory _providerFactory;
     private readonly ILogger<SourcesController> _logger;
 
     public SourcesController(
+        DataDictionaryOptions options,
         IEfModelSourceService sourceService,
         IDbContextProviderFactory providerFactory,
-        ILogger<SourcesController> logger)
+        ILogger<SourcesController> logger) : base(options)
     {
         _sourceService = sourceService;
         _providerFactory = providerFactory;
@@ -80,7 +81,7 @@ public class SourcesController : Controller
             _logger.LogInformation("EF Model Source created: {Name} ({DllPath})", model.Name, model.AssemblyPath);
 
             TempData["SuccessMessage"] = $"Source '{model.Name}' created successfully.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToRoute("DataDictionary", new { controller = "Sources", action = "Index" });
         }
         catch (Exception ex)
         {
@@ -147,7 +148,7 @@ public class SourcesController : Controller
             _logger.LogInformation("EF Model Source updated: {Id} ({Name})", id, model.Name);
 
             TempData["SuccessMessage"] = $"Source '{model.Name}' updated successfully.";
-            return RedirectToAction(nameof(Index));
+            return RedirectToRoute("DataDictionary", new { controller = "Sources", action = "Index" });
         }
         catch (Exception ex)
         {

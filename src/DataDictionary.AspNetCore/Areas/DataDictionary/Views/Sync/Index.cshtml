@@ -157,14 +157,14 @@
                                 <td>
                                     @if (item.Status == "Completed")
                                     {
-                                        <a asp-route="DataDictionary" asp-controller="Sync" asp-action="Results" asp-route-id="@item.SyncHistoryId"
+                                        <a href="@ViewBag.RoutePrefix/Sync/Results/@item.SyncHistoryId"
                                            class="btn btn-sm btn-outline-primary">
                                             View
                                         </a>
                                     }
                                     else if (item.Status == "Failed")
                                     {
-                                        <a asp-route="DataDictionary" asp-controller="Sync" asp-action="Results" asp-route-id="@item.SyncHistoryId"
+                                        <a href="@ViewBag.RoutePrefix/Sync/Results/@item.SyncHistoryId"
                                            class="btn btn-sm btn-outline-secondary"
                                            title="View error details">
                                             View
@@ -198,7 +198,7 @@
             $result.addClass("d-none");
 
             $.ajax({
-                url: "@Url.Action("Execute", "Sync", new { area = "DataDictionary" })",
+                url: "@ViewBag.RoutePrefix/Sync/Execute",
                 type: "POST",
                 data: $(this).serialize(),
                 success: function (data) {
@@ -218,7 +218,7 @@
                             '<li>Removed: <strong class="text-danger">' + data.columnsRemoved + '</strong></li>' +
                             '<li>Duration: <strong>' + data.duration.toFixed(1) + ' seconds</strong></li>' +
                             '</ul>' +
-                            '<a href="@Url.Action("Results", "Sync", new { area = "DataDictionary" })/' + data.syncHistoryId + '" class="btn btn-sm btn-outline-primary">View Results</a>'
+                            '<a href="@ViewBag.RoutePrefix/Sync/Results/' + data.syncHistoryId + '" class="btn btn-sm btn-outline-primary">View Results</a>'
                         );
                     } else {
                         $alert.removeClass("alert-success").addClass("alert-danger");

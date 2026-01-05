@@ -13,7 +13,7 @@
             <div class="card-body">
                 <h5 class="card-title">Data Dictionary</h5>
                 <p class="card-text">View and edit metadata for all database columns including purpose, notes, and business context.</p>
-                <a asp-route="DataDictionary" asp-controller="Dictionary" asp-action="Index" class="btn btn-primary">View Dictionary</a>
+                <a href="@ViewBag.RoutePrefix/Dictionary" class="btn btn-primary">View Dictionary</a>
             </div>
         </div>
     </div>
@@ -22,7 +22,7 @@
             <div class="card-body">
                 <h5 class="card-title">Sync Database</h5>
                 <p class="card-text">Synchronize the data dictionary with your source database to capture schema changes.</p>
-                <a asp-route="DataDictionary" asp-controller="Sync" asp-action="Index" class="btn btn-primary">Sync Now</a>
+                <a href="@ViewBag.RoutePrefix/Sync" class="btn btn-primary">Sync Now</a>
             </div>
         </div>
     </div>
@@ -31,7 +31,7 @@
             <div class="card-body">
                 <h5 class="card-title">Compare Models</h5>
                 <p class="card-text">Compare the data dictionary against EF Core models to identify differences.</p>
-                <a asp-route="DataDictionary" asp-controller="Comparison" asp-action="Index" class="btn btn-primary">Compare</a>
+                <a href="@ViewBag.RoutePrefix/Comparison" class="btn btn-primary">Compare</a>
             </div>
         </div>
     </div>
@@ -40,7 +40,7 @@
             <div class="card-body">
                 <h5 class="card-title">EF Model Sources</h5>
                 <p class="card-text">Configure DbContext DLLs for comparing database schema against EF Core models.</p>
-                <a asp-route="DataDictionary" asp-controller="Sources" asp-action="Index" class="btn btn-primary">Manage Sources</a>
+                <a href="@ViewBag.RoutePrefix/Sources" class="btn btn-primary">Manage Sources</a>
             </div>
         </div>
     </div>

@@ -22,7 +22,7 @@
     <header>
         <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
             <div class="container">
-                <a class="navbar-brand" asp-route="DataDictionary" asp-controller="Home" asp-action="Index">
+                <a class="navbar-brand" href="@ViewBag.RoutePrefix">
                     Data Dictionary
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -31,22 +31,22 @@
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav">
                         <li class="nav-item">
-                            <a class="nav-link @(controller == "Home" ? "active" : "")" asp-route="DataDictionary" asp-controller="Home" asp-action="Index">Home</a>
+                            <a class="nav-link @(controller == "Home" ? "active" : "")" href="@ViewBag.RoutePrefix">Home</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link @(controller == "Dictionary" && action != "Deleted" ? "active" : "")" asp-route="DataDictionary" asp-controller="Dictionary" asp-action="Index">Dictionary</a>
+                            <a class="nav-link @(controller == "Dictionary" && action != "Deleted" ? "active" : "")" href="@ViewBag.RoutePrefix/Dictionary">Dictionary</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link @(controller == "Dictionary" && action == "Deleted" ? "active" : "")" asp-route="DataDictionary" asp-controller="Dictionary" asp-action="Deleted">Deleted</a>
+                            <a class="nav-link @(controller == "Dictionary" && action == "Deleted" ? "active" : "")" href="@ViewBag.RoutePrefix/Dictionary/Deleted">Deleted</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link @(controller == "Sync" ? "active" : "")" asp-route="DataDictionary" asp-controller="Sync" asp-action="Index">Sync</a>
+                            <a class="nav-link @(controller == "Sync" ? "active" : "")" href="@ViewBag.RoutePrefix/Sync">Sync</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link @(controller == "Comparison" ? "active" : "")" asp-route="DataDictionary" asp-controller="Comparison" asp-action="Index">Compare</a>
+                            <a class="nav-link @(controller == "Comparison" ? "active" : "")" href="@ViewBag.RoutePrefix/Comparison">Compare</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link @(controller == "Sources" ? "active" : "")" asp-route="DataDictionary" asp-controller="Sources" asp-action="Index">EF Sources</a>
+                            <a class="nav-link @(controller == "Sources" ? "active" : "")" href="@ViewBag.RoutePrefix/Sources">EF Sources</a>
                         </li>
                     </ul>
                 </div>

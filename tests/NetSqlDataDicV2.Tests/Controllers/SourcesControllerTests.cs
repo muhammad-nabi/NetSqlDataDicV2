@@ -1,3 +1,4 @@
+using DataDictionary.AspNetCore.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -10,6 +11,7 @@ public class SourcesControllerTests
     private readonly Mock<IEfModelSourceService> _sourceServiceMock;
     private readonly Mock<IDbContextProviderFactory> _factoryMock;
     private readonly Mock<ILogger<SourcesController>> _loggerMock;
+    private readonly DataDictionaryOptions _options;
     private readonly SourcesController _controller;
 
     public SourcesControllerTests()
@@ -17,8 +19,10 @@ public class SourcesControllerTests
         _sourceServiceMock = new Mock<IEfModelSourceService>();
         _factoryMock = new Mock<IDbContextProviderFactory>();
         _loggerMock = new Mock<ILogger<SourcesController>>();
+        _options = new DataDictionaryOptions { RoutePrefix = "tools/datadictionary" };
 
         _controller = new SourcesController(
+            _options,
             _sourceServiceMock.Object,
             _factoryMock.Object,
             _loggerMock.Object);
@@ -166,8 +170,10 @@ public class SourcesControllerTests
         var result = await _controller.Create(model, CancellationToken.None);
 
         // Assert
-        var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-        redirectResult.ActionName.Should().Be("Index");
+        var redirectResult = result.Should().BeOfType<RedirectToRouteResult>().Subject;
+        redirectResult.RouteName.Should().Be("DataDictionary");
+        redirectResult.RouteValues!["controller"].Should().Be("Sources");
+        redirectResult.RouteValues!["action"].Should().Be("Index");
     }
 
     [Fact]
@@ -340,8 +346,10 @@ public class SourcesControllerTests
         var result = await _controller.Edit(1, model, CancellationToken.None);
 
         // Assert
-        var redirectResult = result.Should().BeOfType<RedirectToActionResult>().Subject;
-        redirectResult.ActionName.Should().Be("Index");
+        var redirectResult = result.Should().BeOfType<RedirectToRouteResult>().Subject;
+        redirectResult.RouteName.Should().Be("DataDictionary");
+        redirectResult.RouteValues!["controller"].Should().Be("Sources");
+        redirectResult.RouteValues!["action"].Should().Be("Index");
     }
 
     [Fact]

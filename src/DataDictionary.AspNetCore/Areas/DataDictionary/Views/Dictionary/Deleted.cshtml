@@ -6,7 +6,7 @@
     <h2>Deleted Columns</h2>
     <div>
         <span id="recordCount" class="text-muted me-3"></span>
-        <a asp-route="DataDictionary" asp-controller="Dictionary" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+        <a href="@ViewBag.RoutePrefix/Dictionary" class="btn btn-outline-secondary btn-sm">
             Back to Dictionary
         </a>
     </div>
@@ -45,7 +45,7 @@ $(document).ready(function() {
         serverSide: true,
         scrollX: true,
         ajax: {
-            url: '@Url.Action("ReadDeleted", "Dictionary", new { area = "DataDictionary" })',
+            url: '@ViewBag.RoutePrefix/Dictionary/ReadDeleted',
             type: 'POST',
             contentType: 'application/json',
             data: function(d) {
@@ -107,7 +107,7 @@ $(document).ready(function() {
                 orderable: false,
                 className: 'text-center',
                 render: function(data) {
-                    return '<a href="@Url.Action("Details", "Dictionary", new { area = "DataDictionary" })/' + data + '" class="btn btn-sm btn-outline-info" title="View History">Details</a>';
+                    return '<a href="@ViewBag.RoutePrefix/Dictionary/Details/' + data + '" class="btn btn-sm btn-outline-info" title="View History">Details</a>';
                 }
             }
         ],

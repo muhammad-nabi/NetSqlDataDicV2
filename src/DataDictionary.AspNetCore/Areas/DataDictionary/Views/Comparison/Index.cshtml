@@ -40,7 +40,7 @@
                     @if (sources.Count == 0)
                     {
                         <small class="text-muted">
-                            No EF sources configured. <a asp-route="DataDictionary" asp-controller="Sources" asp-action="Create">Add one</a>
+                            No EF sources configured. <a href="@ViewBag.RoutePrefix/Sources/Create">Add one</a>
                         </small>
                     }
                 </div>
@@ -222,7 +222,7 @@
             $text.text("Comparing...");
 
             $.ajax({
-                url: "@Url.Action("CompareSource", "Comparison", new { area = "DataDictionary" })",
+                url: "@ViewBag.RoutePrefix/Comparison/CompareSource",
                 type: "POST",
                 data: { sourceId: sourceId },
                 success: function (result) {

@@ -1,21 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Core.Models.ViewModels;
 using DataDictionary.AspNetCore.Core.Services;
 
 namespace DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
 
-[Area("DataDictionary")]
-public class ComparisonController : Controller
+public class ComparisonController : DataDictionaryControllerBase
 {
     private readonly IComparisonService _comparisonService;
     private readonly IEfModelSourceService _sourceService;
     private readonly ILogger<ComparisonController> _logger;
 
     public ComparisonController(
+        DataDictionaryOptions options,
         IComparisonService comparisonService,
         IEfModelSourceService sourceService,
-        ILogger<ComparisonController> logger)
+        ILogger<ComparisonController> logger) : base(options)
     {
         _comparisonService = comparisonService;
         _sourceService = sourceService;

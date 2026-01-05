@@ -2,21 +2,22 @@ using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Core.Models;
 using DataDictionary.AspNetCore.Core.Models.ViewModels;
 using DataDictionary.AspNetCore.Core.Services;
 
 namespace DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
 
-[Area("DataDictionary")]
-public class DictionaryController : Controller
+public class DictionaryController : DataDictionaryControllerBase
 {
     private readonly IDataDictionaryService _service;
     private readonly ILogger<DictionaryController> _logger;
 
     public DictionaryController(
+        DataDictionaryOptions options,
         IDataDictionaryService service,
-        ILogger<DictionaryController> logger)
+        ILogger<DictionaryController> logger) : base(options)
     {
         _service = service;
         _logger = logger;

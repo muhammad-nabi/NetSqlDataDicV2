@@ -88,6 +88,9 @@ body {
 .status-danger { color: #dc3545; }
 .status-info { color: #0dcaf0; }
 
+/* Darker info color for better visibility on white backgrounds */
+.text-info-dark { color: #0891b2; }
+
 /* Comparison card */
 .comparison-summary .col {
     border-right: 1px solid #dee2e6;
