@@ -383,9 +383,7 @@ app.MapDataDictionary();    // Routes at /tools/datadictionary
   },
   "DataDictionary": {
     "RoutePrefix": "tools/datadictionary",
-    "AutoMigrate": true,
-    "EnableSyncFeature": true,
-    "EnableComparisonFeature": true
+    "AutoMigrate": true
   }
 }
 ```

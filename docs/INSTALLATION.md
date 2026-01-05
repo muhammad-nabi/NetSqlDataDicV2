@@ -163,6 +163,30 @@ app.UseDataDictionary(middleware =>
 }
 ```
 
+### Source Database for Sync Feature
+
+To use the database sync feature, configure the source database connection:
+
+```json
+{
+  "ConnectionStrings": {
+    "SourceDatabase": "Server=localhost;Database=YourSourceDb;Trusted_Connection=True;TrustServerCertificate=True;"
+  },
+  "SourceDatabase": {
+    "Server": "localhost",
+    "Database": "YourSourceDb"
+  }
+}
+```
+
+| Property | Purpose |
+|----------|---------|
+| `ConnectionStrings:SourceDatabase` | Connection string used for sync |
+| `SourceDatabase:Server` | Display name shown in UI |
+| `SourceDatabase:Database` | Display name shown in UI |
+
+> **Note:** Only required if using the Sync feature to pull schema metadata from a live SQL Server database.
+
 ---
 
 ## Complete Configuration Reference
@@ -174,9 +198,6 @@ app.UseDataDictionary(middleware =>
 | `RoutePrefix` | string | `"tools/datadictionary"` | URL path prefix |
 | `ConnectionStringName` | string | `"DataDictionary"` | Connection string key |
 | `AutoMigrate` | bool | `true` | Apply migrations on startup |
-| `EnableSyncFeature` | bool | `true` | Enable database sync feature |
-| `EnableComparisonFeature` | bool | `true` | Enable EF model comparison |
-| `EnableEfModelSources` | bool | `true` | Enable model source management |
 | `RequireAuthorization` | bool | `false` | Require authentication |
 | `AuthorizationPolicy` | string? | `null` | Named auth policy |
 | `RequiredRoles` | string[]? | `null` | Required roles |
