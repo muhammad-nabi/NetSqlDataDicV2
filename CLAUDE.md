@@ -405,6 +405,30 @@ This ensures URLs honor the configured `DataDictionary:RoutePrefix` in consumer 
 
 Detailed specs in `docs/11-pluggable-ui-phases/`.
 
+## Navigation Back Feature
+
+Allows users to navigate back to the consumer application from the Data Dictionary UI.
+
+| Phase | Status | Description |
+|-------|--------|-------------|
+| 1 | Complete | Configuration, ViewBag injection, UI, documentation |
+
+**Configuration (appsettings.json):**
+```json
+{
+  "DataDictionary": {
+    "ConsumerApplicationUrl": "/"
+  }
+}
+```
+
+**Key Features:**
+- Optional "Exit" link on right side of navbar
+- Only displays when `ConsumerApplicationUrl` is configured
+- Non-breaking change for existing consumers
+
+Detailed specs in `docs/12-navigation-back-feature/`.
+
 ## Authorization Configuration
 
 The Data Dictionary supports configurable authorization (opt-in).

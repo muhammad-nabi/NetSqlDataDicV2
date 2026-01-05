@@ -49,6 +49,14 @@
                             <a class="nav-link @(controller == "Sources" ? "active" : "")" href="@ViewBag.RoutePrefix/Sources">EF Sources</a>
                         </li>
                     </ul>
+                    @if (!string.IsNullOrEmpty(ViewBag.ConsumerApplicationUrl))
+                    {
+                        <ul class="navbar-nav ms-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" href="@ViewBag.ConsumerApplicationUrl">Exit</a>
+                            </li>
+                        </ul>
+                    }
                 </div>
             </div>
         </nav>

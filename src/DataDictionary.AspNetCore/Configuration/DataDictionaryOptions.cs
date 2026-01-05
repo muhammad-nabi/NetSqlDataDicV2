@@ -66,4 +66,11 @@ public class DataDictionaryOptions
     /// Only applies when RequireAuthorization is true. Takes precedence over AuthorizationPolicy.
     /// </summary>
     public string[]? RequiredRoles { get; set; }
+
+    /// <summary>
+    /// Optional URL to navigate back to the consumer application.
+    /// If configured, an "Exit" link will appear in the navbar.
+    /// Example: "/" or "/dashboard"
+    /// </summary>
+    public string? ConsumerApplicationUrl { get; set; }
 }

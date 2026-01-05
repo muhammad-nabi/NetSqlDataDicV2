@@ -24,6 +24,9 @@ public abstract class DataDictionaryControllerBase : Controller
         var prefix = _options.RoutePrefix.TrimStart('/').TrimEnd('/');
         ViewBag.RoutePrefix = "/" + prefix;
 
+        // Inject consumer application URL for Exit link
+        ViewBag.ConsumerApplicationUrl = _options.ConsumerApplicationUrl;
+
         base.OnActionExecuting(context);
     }
 }

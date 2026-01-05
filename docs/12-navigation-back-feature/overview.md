@@ -6,7 +6,7 @@ Add an optional "Exit" link to the Data Dictionary navbar, allowing users to nav
 
 | Phase | Status | Description |
 |-------|--------|-------------|
-| 1 | Pending | Complete implementation (config, ViewBag, UI, docs) |
+| 1 | Complete | Complete implementation (config, ViewBag, UI, docs) |
 
 ## Key Features
 

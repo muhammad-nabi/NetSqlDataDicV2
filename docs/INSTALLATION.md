@@ -187,6 +187,20 @@ To use the database sync feature, configure the source database connection:
 
 > **Note:** Only required if using the Sync feature to pull schema metadata from a live SQL Server database.
 
+### Exit Link to Consumer Application
+
+Add an "Exit" link in the navbar to return to your main application:
+
+```json
+{
+  "DataDictionary": {
+    "ConsumerApplicationUrl": "/"
+  }
+}
+```
+
+> **Note:** The "Exit" link only appears when this property is configured.
+
 ---
 
 ## Complete Configuration Reference
@@ -201,6 +215,7 @@ To use the database sync feature, configure the source database connection:
 | `RequireAuthorization` | bool | `false` | Require authentication |
 | `AuthorizationPolicy` | string? | `null` | Named auth policy |
 | `RequiredRoles` | string[]? | `null` | Required roles |
+| `ConsumerApplicationUrl` | string? | `null` | URL for "Exit" link to return to consumer app |
 
 ### DataDictionaryMiddlewareOptions
 
