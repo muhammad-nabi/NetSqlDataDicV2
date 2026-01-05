@@ -1,6 +1,6 @@
 # Phase 5: View Customization Support
 
-## Status: Pending
+## Status: Complete
 
 ## Overview
 
@@ -58,7 +58,7 @@ ConsumerApp/
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" asp-area="DataDictionary" asp-controller="Home" asp-action="Index">
+            <a class="navbar-brand" href="@ViewBag.RoutePrefix">
                 Data Dictionary
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -67,24 +67,16 @@ ConsumerApp/
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav">
                     <li class="nav-item">
-                        <a class="nav-link" asp-area="DataDictionary" asp-controller="Dictionary" asp-action="Index">
-                            Dictionary
-                        </a>
+                        <a class="nav-link" href="@ViewBag.RoutePrefix/Dictionary">Dictionary</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-area="DataDictionary" asp-controller="Sync" asp-action="Index">
-                            Sync
-                        </a>
+                        <a class="nav-link" href="@ViewBag.RoutePrefix/Sync">Sync</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-area="DataDictionary" asp-controller="Comparison" asp-action="Index">
-                            Comparison
-                        </a>
+                        <a class="nav-link" href="@ViewBag.RoutePrefix/Comparison">Comparison</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" asp-area="DataDictionary" asp-controller="Sources" asp-action="Index">
-                            EF Sources
-                        </a>
+                        <a class="nav-link" href="@ViewBag.RoutePrefix/Sources">EF Sources</a>
                     </li>
                 </ul>
             </div>
@@ -199,15 +191,21 @@ Consumer overrides just the layout:
 
 ## Navigation Updates
 
-All views must use area-aware tag helpers:
+All views use `ViewBag.RoutePrefix` for URL construction, which is injected by `DataDictionaryControllerBase`:
 
 ```html
-<!-- Before -->
-<a asp-controller="DataDictionary" asp-action="Index">Dictionary</a>
+<!-- Navigation links use ViewBag.RoutePrefix -->
+<a href="@ViewBag.RoutePrefix/Dictionary">Dictionary</a>
+<a href="@ViewBag.RoutePrefix/Sync">Sync</a>
+<a href="@ViewBag.RoutePrefix/Comparison">Comparison</a>
+<a href="@ViewBag.RoutePrefix/Sources">EF Sources</a>
 
-<!-- After -->
-<a asp-area="DataDictionary" asp-controller="Dictionary" asp-action="Index">Dictionary</a>
+<!-- Links with parameters -->
+<a href="@ViewBag.RoutePrefix/Dictionary/Details/@Model.Id">View Details</a>
+<a href="@ViewBag.RoutePrefix/Sources/Edit/@source.Id">Edit</a>
 ```
+
+This ensures URLs honor the configured `DataDictionary:RoutePrefix` in consumer applications.
 
 ## View Updates Required
 

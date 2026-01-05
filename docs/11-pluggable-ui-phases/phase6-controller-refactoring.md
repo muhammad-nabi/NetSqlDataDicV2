@@ -1,6 +1,6 @@
 # Phase 6: Controller Refactoring
 
-## Status: Pending
+## Status: Complete
 
 ## Overview
 
@@ -8,11 +8,35 @@ Refactor all controllers to support Area-based routing with proper attributes an
 
 ## Goals
 
-1. Add `[Area("DataDictionary")]` attribute to all controllers
-2. Update route attributes for Area compatibility
+1. Create base controller with ViewBag.RoutePrefix injection
+2. All controllers inherit from `DataDictionaryControllerBase`
 3. Rename controllers where needed
 4. Update all action return URLs
 5. Update service injections with new namespaces
+
+## Base Controller
+
+All controllers inherit from `DataDictionaryControllerBase` which injects `ViewBag.RoutePrefix`:
+
+```csharp
+[Area("DataDictionary")]
+public abstract class DataDictionaryControllerBase : Controller
+{
+    private readonly DataDictionaryOptions _options;
+
+    protected DataDictionaryControllerBase(DataDictionaryOptions options)
+    {
+        _options = options;
+    }
+
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        var prefix = _options.RoutePrefix.TrimStart('/').TrimEnd('/');
+        ViewBag.RoutePrefix = "/" + prefix;
+        base.OnActionExecuting(context);
+    }
+}
+```
 
 ## Controller Updates
 
@@ -21,29 +45,17 @@ Refactor all controllers to support Area-based routing with proper attributes an
 ```csharp
 using DataDictionary.AspNetCore.Configuration;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
 
 namespace DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
 
-[Area("DataDictionary")]
-public class HomeController : Controller
+public class HomeController : DataDictionaryControllerBase
 {
-    private readonly ILogger<HomeController> _logger;
-    private readonly DataDictionaryOptions _options;
-
-    public HomeController(
-        ILogger<HomeController> logger,
-        DataDictionaryOptions options)
+    public HomeController(DataDictionaryOptions options) : base(options)
     {
-        _logger = logger;
-        _options = options;
     }
 
     public IActionResult Index()
     {
-        ViewBag.EnableSync = _options.EnableSyncFeature;
-        ViewBag.EnableComparison = _options.EnableComparisonFeature;
-        ViewBag.EnableSources = _options.EnableEfModelSources;
         return View();
     }
 
@@ -60,22 +72,22 @@ public class HomeController : Controller
 ### 2. DictionaryController (renamed from DataDictionaryController)
 
 ```csharp
+using DataDictionary.AspNetCore.Configuration;
 using DataDictionary.AspNetCore.Core.Services;
-using DataDictionary.AspNetCore.Models.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
 namespace DataDictionary.AspNetCore.Areas.DataDictionary.Controllers;
 
-[Area("DataDictionary")]
-public class DictionaryController : Controller
+public class DictionaryController : DataDictionaryControllerBase
 {
     private readonly IDataDictionaryService _service;
     private readonly ILogger<DictionaryController> _logger;
 
     public DictionaryController(
+        DataDictionaryOptions options,
         IDataDictionaryService service,
-        ILogger<DictionaryController> logger)
+        ILogger<DictionaryController> logger) : base(options)
     {
         _service = service;
         _logger = logger;
@@ -85,27 +97,6 @@ public class DictionaryController : Controller
     {
         ViewBag.Servers = await _service.GetDistinctServersAsync();
         return View();
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Read([FromBody] PaginationRequest request)
-    {
-        // ... existing implementation
-    }
-
-    public async Task<IActionResult> Details(int id)
-    {
-        var details = await _service.GetDetailsAsync(id);
-        if (details == null)
-            return NotFound();
-        return View(details);
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Update([FromBody] DataElementUpdateViewModel model)
-    {
-        // ... existing implementation
     }
 
     // ... other actions
@@ -251,16 +242,23 @@ return RedirectToAction("Index");  // Area is implicit from controller
 
 ## JavaScript AJAX URL Updates
 
-Update all AJAX URLs in views:
+All AJAX URLs use `ViewBag.RoutePrefix` for consistency with navigation:
 
 ```javascript
-// Before
-url: '/api/DataDictionary/Read'
+// Use ViewBag.RoutePrefix for all AJAX URLs
+$.ajax({
+    url: '@ViewBag.RoutePrefix/Dictionary/Read',
+    type: 'POST',
+    contentType: 'application/json',
+    data: JSON.stringify(requestData),
+    success: function(result) { ... }
+});
 
-// After
-url: '@Url.Action("Read", "Dictionary", new { area = "DataDictionary" })'
-// Or use data attributes for JavaScript
+// Form actions also use ViewBag.RoutePrefix
+<form action="@ViewBag.RoutePrefix/Sources/Create" method="post">
 ```
+
+This ensures AJAX calls honor the configured `DataDictionary:RoutePrefix`.
 
 ## Verification Steps
 

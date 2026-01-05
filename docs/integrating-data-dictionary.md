@@ -114,14 +114,7 @@ In your `_Layout.cshtml`:
 </li>
 ```
 
-Or using Tag Helpers:
-```html
-<li class="nav-item">
-    <a class="nav-link" asp-area="DataDictionary" asp-controller="Home" asp-action="Index">
-        Data Dictionary
-    </a>
-</li>
-```
+> **Note:** Use direct `href` with the configured route prefix. The Data Dictionary uses `ViewBag.RoutePrefix` internally for URL generation to ensure all links honor the configured `DataDictionary:RoutePrefix`.
 
 ---
 
@@ -148,10 +141,10 @@ Navigate to: `https://localhost:{port}/tools/datadictionary`
 | Feature | URL |
 |---------|-----|
 | Dashboard | `/tools/datadictionary` |
-| Data Dictionary Grid | `/tools/datadictionary/DataDictionary` |
+| Data Dictionary Grid | `/tools/datadictionary/Dictionary` |
 | Database Sync | `/tools/datadictionary/Sync` |
 | EF Model Comparison | `/tools/datadictionary/Comparison` |
-| EF Model Sources | `/tools/datadictionary/EfModelSources` |
+| EF Model Sources | `/tools/datadictionary/Sources` |
 
 ---
 

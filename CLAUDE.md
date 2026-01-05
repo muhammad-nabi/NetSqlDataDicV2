@@ -397,6 +397,14 @@ app.MapDataDictionary();    // Routes at /tools/datadictionary
 - CDN-based dependencies (Bootstrap, jQuery, DataTables)
 - Views can be overridden by consumer application
 
+**Route Prefix Pattern:**
+All controllers inherit from `DataDictionaryControllerBase` which injects `ViewBag.RoutePrefix` from configuration. Views use this for URL construction:
+```html
+<a href="@ViewBag.RoutePrefix/Dictionary">Dictionary</a>
+<a href="@ViewBag.RoutePrefix/Sources/Edit/@Model.Id">Edit</a>
+```
+This ensures URLs honor the configured `DataDictionary:RoutePrefix` in consumer applications.
+
 Detailed specs in `docs/11-pluggable-ui-phases/`.
 
 ## Authorization Configuration

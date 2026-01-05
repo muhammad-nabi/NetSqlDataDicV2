@@ -117,6 +117,43 @@ app.MapDataDictionary();
 // 4. Navigate to /tools/datadictionary
 ```
 
+## Route Prefix Architecture
+
+All controllers inherit from `DataDictionaryControllerBase` which injects `ViewBag.RoutePrefix` from configuration:
+
+```csharp
+[Area("DataDictionary")]
+public abstract class DataDictionaryControllerBase : Controller
+{
+    public override void OnActionExecuting(ActionExecutingContext context)
+    {
+        var prefix = _options.RoutePrefix.TrimStart('/').TrimEnd('/');
+        ViewBag.RoutePrefix = "/" + prefix;
+        base.OnActionExecuting(context);
+    }
+}
+```
+
+Views use `ViewBag.RoutePrefix` for all URL construction:
+
+```html
+<a href="@ViewBag.RoutePrefix/Dictionary">Dictionary</a>
+<a href="@ViewBag.RoutePrefix/Sources/Edit/@Model.Id">Edit</a>
+```
+
+```javascript
+$.ajax({
+    url: '@ViewBag.RoutePrefix/Dictionary/Read',
+    type: 'POST',
+    ...
+});
+```
+
+**Why this approach?**
+- Ensures URLs honor the configured `DataDictionary:RoutePrefix` in consumer applications
+- Works reliably across different hosting configurations
+- Avoids tag helper resolution issues with named routes in consumer apps
+
 ## Edge Cases & Considerations
 
 1. **Authentication/Authorization** - Package does NOT enforce auth; consumer handles
